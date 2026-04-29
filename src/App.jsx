@@ -8,11 +8,8 @@ import { ClientPicker } from './screens/ClientPicker';
 import { OrderDrawer } from './screens/OrderDrawer';
 import { ProductModal } from './screens/ProductModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
-import { api } from './api';
+import { api, auth } from './api';
 
-const SALESMAN = { name: 'Ana Ribera', firstName: 'Ana', initials: 'AR', zone: 'Levante · 42 clientes', email: 'aribera@vendly.com' };
-
-// Multiplicadores por tarifa — derivados del campo `mult` que llega del backend.
 function buildTariffMult(tariffs) {
   const map = {};
   for (const t of tariffs) map[t.id] = t.mult ?? 1;
@@ -24,14 +21,15 @@ export default function App() {
   const [view] = useState('grid');
   const [cardSize] = useState(210);
 
-  const [logged, setLogged] = useState(true);
+  const [salesman, setSalesman] = useState(null); // null = no logueado
+  const [bootDone, setBootDone] = useState(false);
+
   const [route, setRoute] = useState('dashboard');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(null);
   const [cart, setCart] = useState({});
 
-  // ── Datos remotos ───────────────────────────────────────────────
   const [products, setProducts] = useState([]);
   const [clients, setClients]   = useState([]);
   const [tariffs, setTariffs]   = useState([]);
@@ -41,7 +39,30 @@ export default function App() {
   const [mode, setMode]         = useState('…');
   const [error, setError]       = useState(null);
 
+  // Boot: si hay token guardado, intentamos /api/auth/me; si va, cargamos datos.
   useEffect(() => {
+    const onForceLogout = () => { setSalesman(null); setBootDone(true); };
+    window.addEventListener('vendly-logout', onForceLogout);
+    return () => window.removeEventListener('vendly-logout', onForceLogout);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!auth.getToken()) { setBootDone(true); return; }
+      try {
+        const me = await api.me();
+        setSalesman(me);
+      } catch {
+        auth.clear();
+      } finally {
+        setBootDone(true);
+      }
+    })();
+  }, []);
+
+  // Cuando hay comercial autenticado, cargamos los datos.
+  useEffect(() => {
+    if (!salesman) return;
     let cancel = false;
     (async () => {
       try {
@@ -56,14 +77,13 @@ export default function App() {
         setPromos(prs);
         setOrders(ords);
         setClient(cls[0] || null);
-        // Carrito de demo cuando hay productos
-        if (prods.length >= 12) setCart({ [prods[0].id]: 6, [prods[3].id]: 24, [prods[11].id]: 4 });
+        setCart({});
       } catch (e) {
         setError(e.message);
       }
     })();
     return () => { cancel = true; };
-  }, []);
+  }, [salesman]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-density', density);
@@ -90,31 +110,37 @@ export default function App() {
         pricelistId: tariffs.find(t=>t.id===tariff)?.odooId || null,
         lines: lines.map(([id,qty]) => ({ productId: products.find(p=>p.id===id)?.odooId, qty })),
       });
-      // Refrescamos lista de pedidos
       const fresh = await api.orders();
       setOrders(fresh);
-    } catch (e) {
-      // En mock fallamos suave: añadimos uno local para feedback visual
+    } catch {
       const id = 'PD-' + Math.floor(Math.random()*9000+1000);
-      setOrders([{ id, client: client.id, date:'2026-04-29', total: orderTotal, lines: lines.length, status:'borrador' }, ...orders]);
+      setOrders([{ id, client: client.id, date: new Date().toISOString().slice(0,10), total: orderTotal, lines: lines.length, status:'borrador' }, ...orders]);
     }
     setCart({});
     setOrderOpen(false);
     setRoute('orders');
   };
 
-  if (!logged) return <LoginScreen onLogin={()=>setLogged(true)}/>;
+  const onLogout = () => { auth.clear(); setSalesman(null); setProducts([]); setClients([]); setOrders([]); };
+
+  // ── Renders ──
+  if (!bootDone) {
+    return <div style={{ height:'100%', display:'grid', placeItems:'center', color:'var(--ink-4)' }}>Cargando…</div>;
+  }
+
+  if (!salesman) return <LoginScreen onLogin={(c)=>setSalesman(c)}/>;
 
   if (error) return (
     <div style={{ padding: 40, fontFamily:'var(--font-sans)' }}>
       <div className="t-h1" style={{ marginBottom: 8 }}>Error cargando la API</div>
       <div className="t-small" style={{ color:'var(--danger)' }}>{error}</div>
+      <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={onLogout}>Cerrar sesión</button>
     </div>
   );
 
   return (
     <div className="app">
-      <Sidebar route={route} setRoute={setRoute} salesman={SALESMAN} orderCount={orders.filter(o=>o.status==='borrador').length}/>
+      <Sidebar route={route} setRoute={setRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout}/>
       <div className="app-main">
         <Topbar
           title={titles[route]}
@@ -127,7 +153,7 @@ export default function App() {
           onOpenOrder={()=>setOrderOpen(true)}
         />
         <div className="app-content">
-          {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={SALESMAN} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
+          {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients}/>}
           {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}

@@ -1,6 +1,6 @@
 import { Icon } from './Icon';
 
-export function Sidebar({ route, setRoute, salesman, orderCount }) {
+export function Sidebar({ route, setRoute, salesman, orderCount, onLogout }) {
   const items = [
     { id:'dashboard', label:'Inicio',        icon:'home' },
     { id:'catalog',   label:'Catálogo',      icon:'catalog' },
@@ -44,7 +44,7 @@ export function Sidebar({ route, setRoute, salesman, orderCount }) {
           <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{salesman.name}</div>
           <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{salesman.zone}</div>
         </div>
-        <button className="btn btn-ghost btn-icon btn-sm" title="Cerrar sesión"><Icon name="logout" size={16}/></button>
+        <button className="btn btn-ghost btn-icon btn-sm" title="Cerrar sesión" onClick={onLogout}><Icon name="logout" size={16}/></button>
       </div>
     </aside>
   );

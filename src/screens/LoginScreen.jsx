@@ -1,10 +1,28 @@
 import { useState } from 'react';
+import { api, auth } from '../api';
 
 export function LoginScreen({ onLogin }) {
-  const [user, setUser] = useState('aribera');
-  const [pass, setPass] = useState('••••••••');
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr]   = useState(null);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr(null); setBusy(true);
+    try {
+      const { token, comercial } = await api.login(user, pass);
+      auth.setToken(token);
+      onLogin(comercial);
+    } catch (ex) {
+      setErr(ex.message || 'Error de autenticación');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div style={{ height:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', background:'var(--bg)' }}>
+    <form onSubmit={submit} style={{ height:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', background:'var(--bg)' }}>
       <div style={{ padding:'56px 64px', display:'flex', flexDirection:'column', justifyContent:'center', maxWidth: 480 }}>
         <div className="hstack" style={{ marginBottom: 40 }}>
           <div className="sb-logo" style={{ width: 44, height: 44, borderRadius: 12, fontSize: 22 }}>V</div>
@@ -18,18 +36,23 @@ export function LoginScreen({ onLogin }) {
           Inicia sesión con tu usuario asignado por administración.
         </div>
 
-        <div className="vstack" style={{ gap: 14, marginBottom: 24 }}>
+        <div className="vstack" style={{ gap: 14, marginBottom: 18 }}>
           <div className="field">
             <label>Usuario</label>
-            <input className="input lg" value={user} onChange={e=>setUser(e.target.value)} />
+            <input className="input lg" value={user} onChange={e=>setUser(e.target.value)} autoFocus required disabled={busy}/>
           </div>
           <div className="field">
             <label>Contraseña</label>
-            <input className="input lg" type="password" value={pass} onChange={e=>setPass(e.target.value)} />
+            <input className="input lg" type="password" value={pass} onChange={e=>setPass(e.target.value)} required disabled={busy}/>
           </div>
         </div>
-        <button className="btn btn-primary btn-lg" style={{ width:'100%' }} onClick={onLogin}>
-          Entrar
+        {err && (
+          <div style={{ background:'var(--danger-bg)', color:'var(--danger)', padding:'10px 14px', borderRadius:'var(--r-2)', fontSize: 13, marginBottom: 14 }}>
+            {err}
+          </div>
+        )}
+        <button className="btn btn-primary btn-lg" style={{ width:'100%' }} type="submit" disabled={busy}>
+          {busy ? 'Entrando…' : 'Entrar'}
         </button>
         <div className="t-small" style={{ marginTop: 18, textAlign:'center' }}>
           ¿Sin conexión? Puedes seguir trabajando con tu última caché de catálogo.
@@ -57,6 +80,6 @@ export function LoginScreen({ onLogin }) {
           </div>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

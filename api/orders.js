@@ -1,12 +1,24 @@
 import { MOCK_MODE, search_read, create } from './_lib/odoo.js';
 import { ORDERS } from './_lib/mock.js';
 import { mapOrder } from './_lib/mappers.js';
+import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
+  const c = requireComercial(req, res);
+  if (!c) return;
+
   try {
     if (req.method === 'GET') {
       if (MOCK_MODE) return res.status(200).json(ORDERS);
-      const rows = await search_read('sale.order', [], ['name','partner_id','date_order','amount_total','state','order_line'], { limit: 200, order: 'date_order desc' });
+
+      // Filtramos los pedidos por los clientes etiquetados con el tag del comercial.
+      // (En Odoo, partner_id.category_id permite navegación relacional en el dominio.)
+      const domain = [];
+      if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
+
+      const rows = await search_read('sale.order', domain,
+        ['name','partner_id','date_order','amount_total','state','order_line'],
+        { limit: 200, order: 'date_order desc' });
       return res.status(200).json(rows.map(mapOrder));
     }
 
