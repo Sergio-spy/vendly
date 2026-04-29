@@ -35,6 +35,7 @@ export default function App() {
   const [tariffs, setTariffs]   = useState([]);
   const [promos, setPromos]     = useState([]);
   const [orders, setOrders]     = useState([]);
+  const [families, setFamilies] = useState([]);
   const [client, setClient]     = useState(null);
   const [mode, setMode]         = useState('…');
   const [error, setError]       = useState(null);
@@ -66,8 +67,8 @@ export default function App() {
     let cancel = false;
     (async () => {
       try {
-        const [h, prods, cls, tfs, prs, ords] = await Promise.all([
-          api.health(), api.products(), api.clients(), api.tariffs(), api.promos(), api.orders(),
+        const [h, prods, cls, tfs, prs, ords, fams] = await Promise.all([
+          api.health(), api.products(), api.clients(), api.tariffs(), api.promos(), api.orders(), api.families(),
         ]);
         if (cancel) return;
         setMode(h.mode);
@@ -76,6 +77,7 @@ export default function App() {
         setTariffs(tfs);
         setPromos(prs);
         setOrders(ords);
+        setFamilies(fams);
         setClient(cls[0] || null);
         setCart({});
       } catch (e) {
@@ -154,7 +156,7 @@ export default function App() {
         />
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
-          {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult}/>}
+          {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients}/>}
           {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products}/>}

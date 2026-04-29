@@ -1,25 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductCard, ProductRow } from '../components/ProductCard';
 
-// Familias derivadas de los productos (se calcula a partir del campo `family`)
-function buildFamilies(products) {
-  const counts = new Map();
-  for (const p of products) counts.set(p.family, (counts.get(p.family) || 0) + 1);
-  const labels = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulosa & papel', bolsa:'Bolsas & basura', utens:'Utensilios', dispe:'Dispensadores', epi:'EPI & guantes' };
-  const fams = [{ id:'all', name:'Todas', count: products.length }];
-  for (const [id, count] of counts) fams.push({ id, name: labels[id] || id, count });
-  return fams;
-}
-
-export function Catalog({ view, cart, setCart, client, openProduct, cardSize, products = [], tariffMult = {} }) {
+export function Catalog({ view, cart, setCart, client, openProduct, cardSize, products = [], tariffMult = {}, families = [] }) {
   const [family, setFamily] = useState('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
   const [onlyOffer, setOnlyOffer] = useState(false);
   const [onlyStock, setOnlyStock] = useState(false);
 
-  const families = useMemo(() => buildFamilies(products), [products]);
+  const allFamilies = [{ id:'all', name:'Todas', count: products.length }, ...families];
 
   const tariff = client?.tariff || 'T2';
   let prods = products.filter(p => family==='all' || p.family===family);
@@ -36,12 +26,13 @@ export function Catalog({ view, cart, setCart, client, openProduct, cardSize, pr
       <aside style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 16, overflowY:'auto' }}>
         <div className="t-tiny" style={{ marginBottom: 10 }}>Familias</div>
         <div className="vstack" style={{ gap: 2 }}>
-          {families.map(f => (
+          {allFamilies.map(f => (
             <button key={f.id}
               onClick={()=>setFamily(f.id)}
               className="sb-item"
-              data-active={String(family===f.id)}>
-              <span>{f.name}</span>
+              data-active={String(family===f.id)}
+              title={f.name}>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0 }}>{f.name}</span>
               <span className="badge">{f.count}</span>
             </button>
           ))}

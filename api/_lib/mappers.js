@@ -1,6 +1,8 @@
 // Mapeo Odoo → forma esperada por el frontend de Vendly.
 // Ajusta los nombres de campo si tu instancia tiene módulos custom.
 
+import { glyphFor, colorFor } from './families.js';
+
 export function mapPartner(r) {
   return {
     id:          `C${String(r.id).padStart(2,'0')}`,
@@ -23,19 +25,21 @@ export function mapPartner(r) {
 }
 
 export function mapProduct(r) {
+  const categName = r.categ_id?.[1] || '';
   return {
     id:     `P${String(r.id).padStart(3,'0')}`,
     odooId: r.id,
     sku:    r.default_code || '',
     name:   r.display_name || r.name,
-    family: r.categ_id?.[1]?.toLowerCase().slice(0,5) || 'all',
-    brand:  r.product_brand_id?.[1] || '',
+    // family es el ID numérico de la categoría Odoo (para filtrar por igualdad)
+    family: r.categ_id?.[0] ?? null,
+    brand:  '',
     pvp:    r.list_price || 0,
     stock:  r.qty_available || 0,
     oferta: false,
     promo:  null,
-    color:  '#e8e8e8',
-    glyph:  'box',
+    color:  colorFor(categName),
+    glyph:  glyphFor(categName),
   };
 }
 

@@ -42,6 +42,7 @@ export const api = {
   promos:   () => req('/promos'),
   orders:   () => req('/orders'),
   tags:     () => req('/tags'),
+  families: () => req('/families'),
 
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),
