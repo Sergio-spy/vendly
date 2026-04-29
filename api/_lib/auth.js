@@ -55,11 +55,13 @@ export function verifyToken(token) {
 }
 
 // ── Helpers para endpoints ────────────────────────────────────────
-// Extrae el token del header Authorization: Bearer ...
+// Extrae el token: primero del header Authorization: Bearer ..., y si no, de ?token=
+// (necesario para `<img src="/api/...">` que no manda headers).
 export function tokenFromReq(req) {
   const h = req.headers?.authorization || req.headers?.Authorization || '';
   const m = /^Bearer\s+(.+)$/i.exec(h);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  return req.query?.token || null;
 }
 
 // Devuelve el comercial autenticado o null. Buscar por id (para tener datos frescos).

@@ -29,6 +29,13 @@ async function req(path, opts = {}) {
   return r.json();
 }
 
+// URL para usar directamente en <img src>. Lleva el token en query.
+export function productImageUrl(odooId) {
+  if (!odooId) return null;
+  const t = auth.getToken();
+  return `/api/product-image?id=${odooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
+}
+
 export const api = {
   // Auth
   login: (login, password) => req('/auth/login', { method:'POST', body: JSON.stringify({ login, password }) }),

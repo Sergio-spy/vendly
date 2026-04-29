@@ -1,4 +1,5 @@
-import { Icon, ProdGlyph } from '../components/Icon';
+import { Icon } from '../components/Icon';
+import { ProductImage } from '../components/ProductCard';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -95,7 +96,7 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
               return (
                 <div key={pr.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius: 'var(--r-2)', gap: 12 }}>
                   <div className="prod-img" style={{ width: 42, height: 42, background: p?.color || 'var(--surface-2)' }}>
-                    {p && <ProdGlyph kind={p.glyph} size={28} color="rgba(20,24,26,0.55)"/>}
+                    {p && <ProductImage p={p} size={28}/>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="t-tiny" style={{ marginBottom: 1 }}>HASTA {pr.end}</div>

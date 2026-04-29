@@ -1,4 +1,5 @@
-import { Icon, ProdGlyph } from '../components/Icon';
+import { Icon } from '../components/Icon';
+import { ProductImage } from '../components/ProductCard';
 
 const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulosa & papel', bolsa:'Bolsas & basura', utens:'Utensilios', dispe:'Dispensadores', epi:'EPI & guantes' };
 
@@ -17,7 +18,7 @@ export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap: 0 }}>
           <div className="prod-img" style={{ height: 320, background: p.color, borderRadius: 0 }}>
-            <ProdGlyph kind={p.glyph} size={'62%'} color="rgba(20,24,26,0.55)"/>
+            <ProductImage p={p}/>
             {p.promo && <div style={{ position:'absolute', top: 14, left: 14, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{p.promo}</div>}
           </div>
           <div style={{ padding: 22 }}>

@@ -1,4 +1,24 @@
+import { useState } from 'react';
 import { Icon, ProdGlyph } from './Icon';
+import { productImageUrl } from '../api';
+
+// Imagen del producto con fallback al glyph cuando no hay imagen en Odoo.
+function ProductImage({ p, size = '62%' }) {
+  const [failed, setFailed] = useState(false);
+  const url = !failed && p.odooId ? productImageUrl(p.odooId) : null;
+  if (!url) {
+    return <ProdGlyph kind={p.glyph} size={size} color="rgba(20,24,26,0.55)"/>;
+  }
+  return (
+    <img
+      src={url}
+      alt={p.name}
+      onError={() => setFailed(true)}
+      style={{ width:'100%', height:'100%', objectFit:'contain', padding:'8%' }}
+      loading="lazy"
+    />
+  );
+}
 
 export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen }) {
   const price = p.pvp * (tariffMult[tariff] || 1);
@@ -10,7 +30,7 @@ export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen })
     <div className="card prod-card" style={{ width: 'var(--d-card-w)', padding: 'var(--d-pad-card)', display:'flex', flexDirection:'column', gap: 10, position:'relative', cursor:'pointer' }}
          onClick={onOpen}>
       <div className="prod-img" style={{ height: 'var(--d-card-img-h)', background: p.color }}>
-        <ProdGlyph kind={p.glyph} size={'62%'} color="rgba(20,24,26,0.55)"/>
+        <ProductImage p={p}/>
         {p.promo && (
           <div style={{ position:'absolute', top: 8, left: 8, background:'var(--ink)', color:'white', fontSize: 10.5, fontWeight: 700, padding:'3px 8px', borderRadius:'999px', letterSpacing:'0.04em' }}>
             {p.promo}
@@ -27,7 +47,7 @@ export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen })
       </div>
 
       <div style={{ minHeight: 38 }}>
-        <div className="t-tiny" style={{ marginBottom: 2 }}>{p.brand} · {p.sku}</div>
+        <div className="t-tiny" style={{ marginBottom: 2 }}>{p.brand} {p.brand && p.sku && '·'} {p.sku}</div>
         <div style={{ fontSize: 'var(--d-fs-title)', fontWeight: 600, lineHeight: 1.25, textWrap:'pretty' }}>{p.name}</div>
       </div>
 
@@ -64,10 +84,10 @@ export function ProductRow({ p, qty, setQty, tariff, tariffMult = {}, onOpen }) 
   return (
     <div className="card" style={{ padding: 'var(--d-pad-row) 14px', display:'grid', gridTemplateColumns:'48px 1fr 110px 90px 130px', alignItems:'center', gap: 14, cursor:'pointer' }} onClick={onOpen}>
       <div className="prod-img" style={{ width: 48, height: 48, background: p.color }}>
-        <ProdGlyph kind={p.glyph} size={32} color="rgba(20,24,26,0.55)"/>
+        <ProductImage p={p} size={32}/>
       </div>
       <div>
-        <div className="t-tiny">{p.brand} · {p.sku}</div>
+        <div className="t-tiny">{p.brand} {p.brand && p.sku && '·'} {p.sku}</div>
         <div style={{ fontWeight: 600, fontSize: 'var(--d-fs-title)' }}>{p.name}</div>
       </div>
       <div className="tabular" style={{ fontWeight: 700 }}>{price.toFixed(2)} €</div>
@@ -91,3 +111,6 @@ export function ProductRow({ p, qty, setQty, tariff, tariffMult = {}, onOpen }) 
     </div>
   );
 }
+
+// Exportada para usarla en ProductModal
+export { ProductImage };

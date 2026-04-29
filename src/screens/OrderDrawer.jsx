@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Icon, ProdGlyph } from '../components/Icon';
+import { Icon } from '../components/Icon';
+import { ProductImage } from '../components/ProductCard';
 
 export function OrderDrawer({ open, onClose, cart, setCart, client, onConfirm, products = [], tariffMult = {} }) {
   const [discount, setDiscount] = useState(0);
@@ -43,7 +44,7 @@ export function OrderDrawer({ open, onClose, cart, setCart, client, onConfirm, p
               {lines.map(l => (
                 <div key={l.p.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 10 }}>
                   <div className="prod-img" style={{ width: 44, height: 44, background: l.p.color, flexShrink: 0 }}>
-                    <ProdGlyph kind={l.p.glyph} size={28} color="rgba(20,24,26,0.55)"/>
+                    <ProductImage p={l.p} size={28}/>
                   </div>
                   <div style={{ flex:1, minWidth: 0 }}>
                     <div className="t-tiny">{l.p.brand} · {l.p.sku}</div>
