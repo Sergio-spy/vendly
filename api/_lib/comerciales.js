@@ -26,6 +26,7 @@ export const COMERCIALES = [
     zone: 'Admin',
     email: 'sergio@palomatic-sl.com',
     odooTagId: null, // null → ve todos los clientes (admin)
+    role: 'admin',
   },
   {
     id: 'german',
@@ -38,6 +39,7 @@ export const COMERCIALES = [
     zone: 'Comercial',
     email: 'gmasip@palomatic-sl.com',
     odooTagId: 35, // Etiqueta "Comercial - German Masip"
+    role: 'comercial',
   },
   {
     id: 'josep',
@@ -50,5 +52,6 @@ export const COMERCIALES = [
     zone: 'Comercial',
     email: 'jlopez@palomatic-sl.com',
     odooTagId: 36, // Etiqueta "Comercial - Josep Lopez"
+    role: 'comercial',
   },
 ];

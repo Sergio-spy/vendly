@@ -156,7 +156,7 @@ export default function App() {
         />
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
-          {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families}/>}
+          {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients}/>}
           {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products}/>}
@@ -170,7 +170,7 @@ export default function App() {
 
       <ClientPicker open={pickerOpen} onClose={()=>setPickerOpen(false)} clients={clients} current={client} onPick={setClient}/>
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} setCart={setCart} client={client} onConfirm={onConfirm} products={products} tariffMult={tariffMult}/>
-      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} qty={cart[productOpen?.id]||0} setQty={n=>setCart({...cart,[productOpen.id]:n})} tariff={tariff} tariffMult={tariffMult}/>
+      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} qty={cart[productOpen?.id]||0} setQty={n=>setCart({...cart,[productOpen.id]:n})} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
     </div>
   );
 }

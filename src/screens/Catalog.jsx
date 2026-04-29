@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductCard, ProductRow } from '../components/ProductCard';
 
-export function Catalog({ view, cart, setCart, client, openProduct, cardSize, products = [], tariffMult = {}, families = [] }) {
+export function Catalog({ view, cart, setCart, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false }) {
   const [family, setFamily] = useState('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
@@ -44,10 +44,12 @@ export function Catalog({ view, cart, setCart, client, openProduct, cardSize, pr
             <input type="checkbox" checked={onlyOffer} onChange={e=>setOnlyOffer(e.target.checked)} style={{ accentColor:'var(--brand-500)', flexShrink: 0 }}/>
             <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>Solo oferta / promo</span>
           </label>
-          <label className="hstack" style={{ cursor:'pointer', padding: '6px 10px' }}>
-            <input type="checkbox" checked={onlyStock} onChange={e=>setOnlyStock(e.target.checked)} style={{ accentColor:'var(--brand-500)', flexShrink: 0 }}/>
-            <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>Con stock</span>
-          </label>
+          {showStock && (
+            <label className="hstack" style={{ cursor:'pointer', padding: '6px 10px' }}>
+              <input type="checkbox" checked={onlyStock} onChange={e=>setOnlyStock(e.target.checked)} style={{ accentColor:'var(--brand-500)', flexShrink: 0 }}/>
+              <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>Con stock</span>
+            </label>
+          )}
         </div>
       </aside>
 
@@ -70,13 +72,13 @@ export function Catalog({ view, cart, setCart, client, openProduct, cardSize, pr
           {view === 'grid' ? (
             <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${cardSize}px, 1fr))`, gap:'var(--d-gap)' }}>
               {prods.map(p => (
-                <ProductCard key={p.id} p={p} qty={cart[p.id]||0} setQty={n=>setQty(p.id,n)} tariff={tariff} tariffMult={tariffMult} onOpen={()=>openProduct(p)}/>
+                <ProductCard key={p.id} p={p} qty={cart[p.id]||0} setQty={n=>setQty(p.id,n)} tariff={tariff} tariffMult={tariffMult} onOpen={()=>openProduct(p)} showStock={showStock}/>
               ))}
             </div>
           ) : (
             <div className="vstack" style={{ gap: 8 }}>
               {prods.map(p => (
-                <ProductRow key={p.id} p={p} qty={cart[p.id]||0} setQty={n=>setQty(p.id,n)} tariff={tariff} tariffMult={tariffMult} onOpen={()=>openProduct(p)}/>
+                <ProductRow key={p.id} p={p} qty={cart[p.id]||0} setQty={n=>setQty(p.id,n)} tariff={tariff} tariffMult={tariffMult} onOpen={()=>openProduct(p)} showStock={showStock}/>
               ))}
             </div>
           )}

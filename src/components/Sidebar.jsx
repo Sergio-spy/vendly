@@ -1,6 +1,7 @@
 import { Icon } from './Icon';
 
 export function Sidebar({ route, setRoute, salesman, orderCount, onLogout }) {
+  const isAdmin = salesman.role === 'admin';
   const items = [
     { id:'dashboard', label:'Inicio',        icon:'home' },
     { id:'catalog',   label:'Catálogo',      icon:'catalog' },
@@ -8,10 +9,10 @@ export function Sidebar({ route, setRoute, salesman, orderCount, onLogout }) {
     { id:'clients',   label:'Clientes',      icon:'clients' },
     { id:'tariffs',   label:'Tarifas',       icon:'tariffs' },
     { id:'promos',    label:'Promociones',   icon:'promo' },
-    { id:'stock',     label:'Stock',         icon:'stock' },
+    isAdmin && { id:'stock', label:'Stock',  icon:'stock' },
     { id:'collect',   label:'Cobros',        icon:'collect' },
     { id:'kpi',       label:'Mi rendimiento',icon:'kpi' },
-  ];
+  ].filter(Boolean);
   return (
     <aside className="sidebar">
       <div className="sb-brand">
@@ -33,10 +34,14 @@ export function Sidebar({ route, setRoute, salesman, orderCount, onLogout }) {
         </button>
       ))}
 
-      <div className="sb-section">Sistema</div>
-      <button className="sb-item" data-active={String(route === 'admin')} onClick={() => setRoute('admin')}>
-        <Icon name="admin" size={18}/><span>Admin</span>
-      </button>
+      {isAdmin && (
+        <>
+          <div className="sb-section">Sistema</div>
+          <button className="sb-item" data-active={String(route === 'admin')} onClick={() => setRoute('admin')}>
+            <Icon name="admin" size={18}/><span>Admin</span>
+          </button>
+        </>
+      )}
 
       <div className="sb-foot">
         <div className="avatar">{salesman.initials}</div>

@@ -15,7 +15,9 @@ export default async function handler(req, res) {
       const domain = [];
       if (c.odooTagId) domain.push(['category_id', 'in', [c.odooTagId]]);
 
-      const fields = ['name','ref','vat','city','street','street2','phone','property_product_pricelist','property_payment_term_id'];
+      const fields = ['name','ref','vat','city','street','street2','phone',
+        'credit','credit_limit','total_invoiced',
+        'property_product_pricelist','property_payment_term_id'];
       const rows = await search_read('res.partner', domain, fields, { limit: 1000 });
       return res.status(200).json(rows.map(mapPartner));
     }

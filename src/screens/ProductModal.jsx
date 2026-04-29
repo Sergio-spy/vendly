@@ -3,7 +3,7 @@ import { ProductImage } from '../components/ProductCard';
 
 const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulosa & papel', bolsa:'Bolsas & basura', utens:'Utensilios', dispe:'Dispensadores', epi:'EPI & guantes' };
 
-export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult = {} }) {
+export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult = {}, showStock = false }) {
   if (!product) return null;
   const p = product;
   const price = p.pvp * (tariffMult[tariff] || 1);
@@ -30,7 +30,7 @@ export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 18 }}>
               <div><div className="t-tiny">PVP</div><div className="tabular muted" style={{ fontSize: 17, textDecoration: tariff!=='T2'?'line-through':'none' }}>{p.pvp.toFixed(2)} €</div></div>
               <div><div className="t-tiny">PRECIO TARIFA {tariff}</div><div className="tabular bold" style={{ fontSize: 24, color: 'var(--brand-700)' }}>{price.toFixed(2)} €</div></div>
-              <div><div className="t-tiny">STOCK TOTAL</div><div className="tabular bold" style={{ fontSize: 17 }}>{p.stock} ud.</div></div>
+              {showStock && <div><div className="t-tiny">STOCK TOTAL</div><div className="tabular bold" style={{ fontSize: 17 }}>{p.stock} ud.</div></div>}
               <div><div className="t-tiny">UNIDAD MÍN.</div><div className="tabular bold" style={{ fontSize: 17 }}>1 ud.</div></div>
             </div>
             <div className="t-small muted" style={{ marginBottom: 18, lineHeight: 1.55 }}>
@@ -40,7 +40,7 @@ export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult
               <div className="stepper lg">
                 <button onClick={()=>setQty(Math.max(0,qty-1))}><Icon name="minus" size={16}/></button>
                 <input value={qty} onChange={e=>setQty(Math.max(0,parseInt(e.target.value)||0))}/>
-                <button onClick={()=>setQty(qty+1)} disabled={p.stock===0}><Icon name="plus" size={16}/></button>
+                <button onClick={()=>setQty(qty+1)}><Icon name="plus" size={16}/></button>
               </div>
               <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(qty===0) setQty(1); onClose(); }}>
                 <Icon name="cart" size={16}/> {qty===0?'Añadir al pedido':'Actualizar pedido'}

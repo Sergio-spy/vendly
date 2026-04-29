@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     comercial: {
       id: c.id, name: c.name, firstName: c.firstName,
       initials: c.initials, zone: c.zone, email: c.email,
+      role: c.role || 'comercial',
     },
   });
 }
