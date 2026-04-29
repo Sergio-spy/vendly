@@ -5,7 +5,9 @@ import { mapPartner } from './_lib/mappers.js';
 export default async function handler(req, res) {
   try {
     if (MOCK_MODE) return res.status(200).json(CLIENTS);
-    const fields = ['name','ref','vat','city','street','street2','phone','credit','credit_limit','total_invoiced','property_product_pricelist','property_payment_term_id'];
+    // credit / credit_limit / total_invoiced requieren permiso "Accounting / Read-only" en el usuario API.
+    // Los dejo fuera para que funcione con un usuario de ventas básico; cuando se den permisos, reañadir.
+    const fields = ['name','ref','vat','city','street','street2','phone','property_product_pricelist','property_payment_term_id'];
     const rows = await search_read('res.partner', [['customer_rank','>',0]], fields, { limit: 500 });
     res.status(200).json(rows.map(mapPartner));
   } catch (e) {
