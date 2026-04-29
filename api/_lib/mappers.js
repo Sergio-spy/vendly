@@ -18,7 +18,7 @@ export function mapPartner(r) {
     status:      (r.credit > 0) ? 'pendiente' : 'al-dia',
     totalYtd:    r.total_invoiced || 0,
     contact:     r.child_ids?.[0]?.name || r.name,
-    phone:       r.phone || r.mobile || '',
+    phone:       r.phone || '',
   };
 }
 
@@ -44,7 +44,7 @@ export function mapPricelist(r) {
     id:      `T${r.id}`,
     odooId:  r.id,
     name:    r.name,
-    desc:    r.discount_policy === 'with_discount' ? 'Con descuento' : 'PVP',
+    desc:    r.currency_id?.[1] || 'Tarifa',
     clients: 0,
     color:   '#2473c5',
   };
