@@ -8,17 +8,17 @@ export const FAMILY_PATHS = [
   'Cubos Y Escurridores',
   'Discos Algodon y Tiras adhesivas',
   'Escobas',
-  'Fregonas Algodon',
+  'Fregonas Algodón',
   'Fregonas Microfibra',
   'Palos Aluminio/Anodizado',
   'Palos Aluminio/ECO/Empuñaduras',
   'Palos Aluminio/ECO/Plastificado',
   'Palos Aluminio/PRO/Empuñaduras',
   'Palos Aluminio/PRO/Plastificado',
-  'Palos Metalicos',
+  'Palos Metálicos',
   'Plumeros',
   'Recogedores',
-  'Toallitas/Adulto',
+  'Toallitas/Adultos',
   'Toallitas/Bebe',
   'Toallitas/Citronela',
   'Toallitas/Gafas',
@@ -55,10 +55,13 @@ export function colorFor(familyName = '') {
   return pickColor(familyName || 'default');
 }
 
-// Normaliza "Palos Aluminio/ECO/Empuñaduras" → "palos aluminio / eco / empuñaduras"
-// para comparar con `complete_name` de Odoo (que usa " / " como separador).
+// Normaliza para comparar: separador uniforme, minúsculas, sin tildes ni espacios extra.
+// Hace tolerante el matching ante variaciones (Algodon vs Algodón, etc.).
+function stripDiacritics(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
 export function normalizePath(path) {
-  return path.split('/').map(s => s.trim().toLowerCase()).join(' / ');
+  return stripDiacritics(path).split('/').map(s => s.trim().toLowerCase()).join(' / ');
 }
 
 // Dado el listado de categorías de Odoo, devuelve solo las que matchean la config.
@@ -68,7 +71,7 @@ export function resolveFamilies(odooCategories, productsByCategId = new Map()) {
   const out = [];
   for (const w of wanted) {
     const cat = odooCategories.find(c => {
-      const cn = (c.complete_name || c.name || '').toLowerCase();
+      const cn = stripDiacritics(c.complete_name || c.name || '').toLowerCase();
       return cn.endsWith(w.norm) || cn === w.norm;
     });
     if (!cat) continue;
