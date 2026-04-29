@@ -48,6 +48,7 @@ export const api = {
   tariffs:  () => req('/tariffs'),
   promos:   () => req('/promos'),
   orders:   () => req('/orders'),
+  order:    (id) => req(`/order?id=${encodeURIComponent(id)}`),
   tags:     () => req('/tags'),
   families: () => req('/families'),
 

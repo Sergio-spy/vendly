@@ -7,6 +7,7 @@ import { Catalog } from './screens/Catalog';
 import { ClientPicker } from './screens/ClientPicker';
 import { OrderDrawer } from './screens/OrderDrawer';
 import { ProductModal } from './screens/ProductModal';
+import { OrderDetailModal } from './screens/OrderDetailModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
 import { api, auth } from './api';
 
@@ -28,6 +29,7 @@ export default function App() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(null);
+  const [orderDetailOpen, setOrderDetailOpen] = useState(null);
   const [cart, setCart] = useState({});
 
   const [products, setProducts] = useState([]);
@@ -157,7 +159,7 @@ export default function App() {
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
-          {route==='orders'    && <OrdersScreen orders={orders} clients={clients}/>}
+          {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)}/>}
           {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products}/>}
           {route==='promos'    && <PromosScreen promos={promos} products={products}/>}
@@ -171,6 +173,7 @@ export default function App() {
       <ClientPicker open={pickerOpen} onClose={()=>setPickerOpen(false)} clients={clients} current={client} onPick={setClient}/>
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} setCart={setCart} client={client} onConfirm={onConfirm} products={products} tariffMult={tariffMult}/>
       <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} qty={cart[productOpen?.id]||0} setQty={n=>setCart({...cart,[productOpen.id]:n})} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
+      <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
     </div>
   );
 }

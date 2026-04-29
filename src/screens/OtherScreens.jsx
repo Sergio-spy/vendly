@@ -11,8 +11,9 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function OrdersScreen({ orders = [], clients = [] }) {
+export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onView }) {
   const [filter, setFilter] = useState('all');
+  const [busy, setBusy] = useState(false);
   const filt = orders.filter(o => filter==='all' || o.status===filter);
   const counts = {
     all: orders.length,
@@ -20,13 +21,20 @@ export function OrdersScreen({ orders = [], clients = [] }) {
     pendiente: orders.filter(o=>o.status==='pendiente').length,
     exportado: orders.filter(o=>o.status==='exportado').length,
   };
+  const refresh = async () => {
+    if (!onRefresh) return;
+    setBusy(true);
+    try { await onRefresh(); } finally { setBusy(false); }
+  };
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack" style={{ gap: 16 }}>
         <div className="t-display">Pedidos</div>
         <div className="spacer"/>
-        <button className="btn btn-secondary"><Icon name="sync" size={14}/> Sincronizar a Odoo</button>
-        <button className="btn btn-primary"><Icon name="plus" size={14}/> Nuevo pedido</button>
+        <button className="btn btn-secondary" onClick={refresh} disabled={busy}>
+          <Icon name="sync" size={14}/> {busy ? 'Sincronizando…' : 'Sincronizar a Odoo'}
+        </button>
+        <button className="btn btn-primary" onClick={onNew}><Icon name="plus" size={14}/> Nuevo pedido</button>
       </div>
       <div className="hstack" style={{ gap: 8 }}>
         {[['all','Todos'],['borrador','Borrador'],['pendiente','Pendientes'],['exportado','Exportados']].map(([k,l])=>(
@@ -42,14 +50,14 @@ export function OrdersScreen({ orders = [], clients = [] }) {
             {filt.map(o => {
               const cl = clients.find(c => c.id === o.client);
               return (
-                <tr key={o.id}>
+                <tr key={o.id} style={{ cursor: onView ? 'pointer' : 'default' }} onClick={()=>onView?.(o)}>
                   <td className="bold">{o.id}</td>
                   <td>{cl?.name}<div className="t-small">#{cl?.code} · {cl?.city}</div></td>
                   <td className="muted tabular">{o.date}</td>
                   <td className="tabular">{o.lines}</td>
                   <td className="num bold tabular">{o.total.toFixed(2)} €</td>
                   <td><span className={`tag ${o.status==='exportado'?'tag-success':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span></td>
-                  <td><button className="btn btn-ghost btn-sm"><Icon name="eye" size={14}/></button></td>
+                  <td><button className="btn btn-ghost btn-sm" onClick={(e)=>{ e.stopPropagation(); onView?.(o); }}><Icon name="eye" size={14}/></button></td>
                 </tr>
               );
             })}
