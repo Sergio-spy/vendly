@@ -64,27 +64,38 @@ export default function App() {
   }, []);
 
   // Cuando hay comercial autenticado, cargamos los datos.
+  // Reintenta una vez si falla — protege contra cold-starts simultáneos
+  // de Vercel Functions y rate-limit puntual al autenticar en Odoo.
   useEffect(() => {
     if (!salesman) return;
     let cancel = false;
+    const fetchAll = () => Promise.all([
+      api.health(), api.products(), api.clients(), api.tariffs(), api.promos(), api.orders(), api.families(),
+    ]);
     (async () => {
+      let result;
       try {
-        const [h, prods, cls, tfs, prs, ords, fams] = await Promise.all([
-          api.health(), api.products(), api.clients(), api.tariffs(), api.promos(), api.orders(), api.families(),
-        ]);
-        if (cancel) return;
-        setMode(h.mode);
-        setProducts(prods);
-        setClients(cls);
-        setTariffs(tfs);
-        setPromos(prs);
-        setOrders(ords);
-        setFamilies(fams);
-        setClient(cls[0] || null);
-        setCart({});
-      } catch (e) {
-        setError(e.message);
+        result = await fetchAll();
+      } catch {
+        await new Promise(r => setTimeout(r, 800));
+        try {
+          result = await fetchAll();
+        } catch (e) {
+          if (!cancel) setError(e.message);
+          return;
+        }
       }
+      if (cancel) return;
+      const [h, prods, cls, tfs, prs, ords, fams] = result;
+      setMode(h.mode);
+      setProducts(prods);
+      setClients(cls);
+      setTariffs(tfs);
+      setPromos(prs);
+      setOrders(ords);
+      setFamilies(fams);
+      setClient(cls[0] || null);
+      setCart({});
     })();
     return () => { cancel = true; };
   }, [salesman]);

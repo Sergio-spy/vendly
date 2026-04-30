@@ -357,6 +357,72 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .stepper.lg button { width: 40px; }
 .stepper.lg input { width: 50px; font-size: 15px; }
 
+/* Tarjeta producto · vista mosaico hero (catálogo grid) */
+.prod-card-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: border-color .12s, box-shadow .12s, transform .08s;
+}
+.prod-card-hero:hover { border-color: var(--border-2); box-shadow: var(--sh-2); }
+.prod-card-hero:active { transform: scale(0.995); }
+.prod-card-hero .hero-img {
+  aspect-ratio: 4 / 3;
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.prod-card-hero .hero-img img { width: 100%; height: 100%; object-fit: contain; padding: 6%; }
+.prod-card-hero .hero-img .badge-promo {
+  position: absolute; top: 12px; left: 12px;
+  background: var(--ink); color: white;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.prod-card-hero .hero-img .badge-tag { position: absolute; top: 12px; left: 12px; }
+.prod-card-hero .hero-img .badge-stock {
+  position: absolute; inset: 0;
+  background: rgba(247,248,246,0.7);
+  display: grid; place-items: center;
+}
+.prod-card-hero .hero-body {
+  padding: 14px 16px 16px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+}
+.prod-card-hero .hero-info { flex: 1; min-width: 0; }
+.prod-card-hero .hero-meta {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prod-card-hero .hero-name {
+  font-size: 14.5px; font-weight: 600;
+  line-height: 1.3; letter-spacing: -0.005em;
+  margin-bottom: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+.prod-card-hero .hero-price {
+  font-size: 19px; font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.prod-card-hero .hero-stock {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.prod-card-hero .hero-cta { flex-shrink: 0; }
+
 .qty-add {
   height: 32px; width: 32px;
   border-radius: var(--r-pill);

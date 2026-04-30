@@ -70,7 +70,7 @@ export function Catalog({ view, cart, setCart, client, openProduct, cardSize, pr
 
         <div className="scroll-y" style={{ flex:1, overflowY:'auto', padding: 22, background:'var(--bg)' }}>
           {view === 'grid' ? (
-            <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${cardSize}px, 1fr))`, gap:'var(--d-gap)' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:'var(--d-gap)' }}>
               {prods.map(p => (
                 <ProductCard key={p.id} p={p} qty={cart[p.id]||0} setQty={n=>setQty(p.id,n)} tariff={tariff} tariffMult={tariffMult} onOpen={()=>openProduct(p)} showStock={showStock}/>
               ))}
