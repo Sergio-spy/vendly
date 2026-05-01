@@ -1,51 +1,161 @@
+import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
+import { api } from '../api';
 
 const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulosa & papel', bolsa:'Bolsas & basura', utens:'Utensilios', dispe:'Dispensadores', epi:'EPI & guantes' };
 
-export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult = {}, showStock = false }) {
-  if (!product) return null;
+// Modal de detalle de producto.
+// - Muestra Referencia (SKU) y EAN visibles para el comercial.
+// - Si el template tiene 1 variante: stepper directo, comportamiento clásico.
+// - Si tiene >1 variante: descarga las variantes desde /api/product-variants y
+//   muestra una lista, cada una con su propio stepper. El carrito guarda la
+//   variante elegida con su nombre y atributos.
+export function ProductModal({ product, onClose, cart = {}, updateCartQty, tariff, tariffMult = {}, showStock = false }) {
   const p = product;
+  const isMulti = p ? (p.variantCount ?? 1) > 1 : false;
+  const singleVariantIdLocal = p ? (p.odooId ?? p.id) : null;
+  const [variants, setVariants] = useState(null); // null = no cargadas, [] = cargadas vacías
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  const [errorVariants, setErrorVariants] = useState(null);
+
+  useEffect(() => {
+    if (!p || !isMulti) { setVariants(null); return; }
+    let cancel = false;
+    setLoadingVariants(true);
+    setErrorVariants(null);
+    (async () => {
+      try {
+        const data = await api.variants(p.templateId);
+        if (!cancel) setVariants(data);
+      } catch (e) {
+        if (!cancel) setErrorVariants(e.message);
+      } finally {
+        if (!cancel) setLoadingVariants(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [p?.templateId, isMulti]);
+
+  if (!p) return null;
   const price = p.pvp * (tariffMult[tariff] || 1);
+
+  // Para single variant
+  const singleQty = !isMulti ? (cart[singleVariantIdLocal]?.qty || 0) : 0;
+  const setSingleQty = (n) => updateCartQty(singleVariantIdLocal, n, {
+    templateId: p.templateId ?? p.id, name: p.name, price: p.pvp, sku: p.sku, ean: p.ean, color: p.color, glyph: p.glyph,
+  });
+
   return (
     <>
       <div className="scrim" onClick={onClose}/>
-      <div className="modal" style={{ width: 720, maxHeight: '90vh' }}>
+      <div className="modal" style={{ width: 760, maxHeight: '90vh' }}>
         <div className="hstack" style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)' }}>
-          <div className="t-tiny">{p.brand} · {p.sku}</div>
+          <div className="t-tiny">{p.brand}{p.brand && p.sku ? ' · ' : ''}{p.sku}</div>
           <div className="spacer"/>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x"/></button>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap: 0 }}>
-          <div className="prod-img" style={{ height: 320, borderRadius: 0 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap: 0, minHeight: 0, overflow: 'hidden' }}>
+          <div className="prod-img" style={{ height: 360, borderRadius: 0 }}>
             <ProductImage p={p}/>
             {p.promo && <div style={{ position:'absolute', top: 14, left: 14, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{p.promo}</div>}
           </div>
-          <div style={{ padding: 22 }}>
+          <div style={{ padding: 22, overflowY: 'auto', maxHeight: '90vh' }}>
             <div className="t-h1" style={{ marginBottom: 8 }}>{p.name}</div>
-            <div className="hstack" style={{ gap: 6, marginBottom: 18 }}>
-              <span className="tag tag-neutral">{FAMILY_LABELS[p.family] || p.family}</span>
+            <div className="hstack" style={{ gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+              {FAMILY_LABELS[p.family] && <span className="tag tag-neutral">{FAMILY_LABELS[p.family]}</span>}
               {p.oferta && <span className="tag tag-success">OFERTA</span>}
+              {isMulti && <span className="tag tag-info">{p.variantCount} variantes</span>}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 18 }}>
-              <div><div className="t-tiny">PVP</div><div className="tabular muted" style={{ fontSize: 17, textDecoration: tariff!=='T2'?'line-through':'none' }}>{p.pvp.toFixed(2)} €</div></div>
-              <div><div className="t-tiny">PRECIO TARIFA {tariff}</div><div className="tabular bold" style={{ fontSize: 24, color: 'var(--brand-700)' }}>{price.toFixed(2)} €</div></div>
-              {showStock && <div><div className="t-tiny">STOCK TOTAL</div><div className="tabular bold" style={{ fontSize: 17 }}>{p.stock} ud.</div></div>}
-              <div><div className="t-tiny">UNIDAD MÍN.</div><div className="tabular bold" style={{ fontSize: 17 }}>1 ud.</div></div>
-            </div>
-            <div className="t-small muted" style={{ marginBottom: 18, lineHeight: 1.55 }}>
-              Producto profesional para limpieza e higiene. Apto para uso en hostelería, geriátricos y limpieza industrial. Cumple normativa europea.
-            </div>
-            <div className="hstack" style={{ gap: 10 }}>
-              <div className="stepper lg">
-                <button onClick={()=>setQty(Math.max(0,qty-1))}><Icon name="minus" size={16}/></button>
-                <input value={qty} onChange={e=>setQty(Math.max(0,parseInt(e.target.value)||0))}/>
-                <button onClick={()=>setQty(qty+1)}><Icon name="plus" size={16}/></button>
+
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <div className="t-tiny">REFERENCIA</div>
+                <div className="tabular" style={{ fontSize: 14, fontWeight: 600 }}>{p.sku || '—'}</div>
               </div>
-              <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(qty===0) setQty(1); onClose(); }}>
-                <Icon name="cart" size={16}/> {qty===0?'Añadir al pedido':'Actualizar pedido'}
-              </button>
+              <div>
+                <div className="t-tiny">CÓDIGO EAN</div>
+                <div className="tabular" style={{ fontSize: 14, fontWeight: 600 }}>{p.ean || '—'}</div>
+              </div>
+              <div>
+                <div className="t-tiny">PVP</div>
+                <div className="tabular muted" style={{ fontSize: 16 }}>{p.pvp.toFixed(2)} €</div>
+              </div>
+              <div>
+                <div className="t-tiny">PRECIO TARIFA {tariff}</div>
+                <div className="tabular bold" style={{ fontSize: 22, color: 'var(--brand-700)' }}>{price.toFixed(2)} €</div>
+              </div>
+              {showStock && (
+                <div>
+                  <div className="t-tiny">STOCK TOTAL</div>
+                  <div className="tabular bold" style={{ fontSize: 16 }}>{p.stock} ud.</div>
+                </div>
+              )}
             </div>
+
+            {!isMulti ? (
+              <div className="hstack" style={{ gap: 10, marginTop: 8 }}>
+                <div className="stepper lg">
+                  <button onClick={()=>setSingleQty(Math.max(0,singleQty-1))}><Icon name="minus" size={16}/></button>
+                  <input value={singleQty} onChange={e=>setSingleQty(Math.max(0,parseInt(e.target.value)||0))}/>
+                  <button onClick={()=>setSingleQty(singleQty+1)}><Icon name="plus" size={16}/></button>
+                </div>
+                <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleQty===0) setSingleQty(1); onClose(); }}>
+                  <Icon name="cart" size={16}/> {singleQty===0?'Añadir al pedido':'Actualizar pedido'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="t-tiny" style={{ marginBottom: 8 }}>VARIANTES DISPONIBLES</div>
+                {loadingVariants && <div className="muted t-small">Cargando variantes…</div>}
+                {errorVariants && <div className="t-small" style={{ color:'var(--danger)' }}>Error: {errorVariants}</div>}
+                {variants && variants.length === 0 && <div className="muted t-small">No hay variantes en Odoo.</div>}
+                {variants && variants.length > 0 && (
+                  <div className="vstack" style={{ gap: 8 }}>
+                    {variants.map(v => {
+                      const vQty = cart[v.odooId]?.qty || 0;
+                      const vPrice = v.pvp * (tariffMult[tariff] || 1);
+                      const setVQty = (n) => updateCartQty(v.odooId, n, {
+                        templateId: p.templateId,
+                        name: p.name,
+                        attrLabel: v.attrLabel,
+                        price: v.pvp,
+                        sku: v.sku || p.sku,
+                        ean: v.ean,
+                        color: p.color,
+                        glyph: p.glyph,
+                      });
+                      const noStock = showStock && v.stock === 0;
+                      return (
+                        <div key={v.id} className="hstack" style={{ padding: '10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 12, opacity: noStock ? 0.55 : 1 }}>
+                          <div style={{ flex:1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13.5 }}>{v.attrLabel || v.name}</div>
+                            <div className="t-small">
+                              {v.sku && <span className="tabular">Ref: {v.sku}</span>}
+                              {v.sku && v.ean && <span> · </span>}
+                              {v.ean && <span className="tabular">EAN: {v.ean}</span>}
+                              {showStock && <span> · {v.stock} ud.</span>}
+                            </div>
+                          </div>
+                          <div className="tabular bold" style={{ fontSize: 14, color:'var(--brand-700)', minWidth: 70, textAlign: 'right' }}>{vPrice.toFixed(2)} €</div>
+                          {vQty > 0 ? (
+                            <div className="stepper active">
+                              <button onClick={() => setVQty(Math.max(0, vQty - 1))}><Icon name="minus" size={14}/></button>
+                              <input value={vQty} onChange={e => setVQty(Math.max(0, parseInt(e.target.value)||0))}/>
+                              <button onClick={() => setVQty(vQty + 1)} disabled={noStock}><Icon name="plus" size={14}/></button>
+                            </div>
+                          ) : (
+                            <button className="btn btn-secondary btn-sm" onClick={() => setVQty(1)} disabled={noStock}>
+                              <Icon name="plus" size={14}/> Añadir
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

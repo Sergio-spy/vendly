@@ -30,10 +30,17 @@ async function req(path, opts = {}) {
 }
 
 // URL para usar directamente en <img src>. Lleva el token en query.
-export function productImageUrl(odooId) {
-  if (!odooId) return null;
+// Acepta o bien `odooId` (variante product.product) o `{templateId}` (plantilla).
+export function productImageUrl(odooIdOrParams) {
   const t = auth.getToken();
-  return `/api/product-image?id=${odooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
+  const tokenQs = t ? '&token=' + encodeURIComponent(t) : '';
+  if (typeof odooIdOrParams === 'object' && odooIdOrParams) {
+    if (odooIdOrParams.templateId) return `/api/product-image?templateId=${odooIdOrParams.templateId}${tokenQs}`;
+    if (odooIdOrParams.odooId)     return `/api/product-image?id=${odooIdOrParams.odooId}${tokenQs}`;
+    return null;
+  }
+  if (!odooIdOrParams) return null;
+  return `/api/product-image?id=${odooIdOrParams}${tokenQs}`;
 }
 
 export const api = {
@@ -51,6 +58,9 @@ export const api = {
   order:    (id) => req(`/order?id=${encodeURIComponent(id)}`),
   tags:     () => req('/tags'),
   families: () => req('/families'),
+
+  // Variantes de un product.template
+  variants: (templateId) => req(`/product-variants?templateId=${encodeURIComponent(templateId)}`),
 
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),

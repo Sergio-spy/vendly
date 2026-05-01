@@ -30,6 +30,7 @@ export function mapProduct(r) {
     id:     `P${String(r.id).padStart(3,'0')}`,
     odooId: r.id,
     sku:    r.default_code || '',
+    ean:    r.barcode || '',
     name:   r.display_name || r.name,
     // family es el ID numérico de la categoría Odoo (para filtrar por igualdad)
     family: r.categ_id?.[0] ?? null,
@@ -40,6 +41,50 @@ export function mapProduct(r) {
     promo:  null,
     color:  colorFor(categName),
     glyph:  glyphFor(categName),
+  };
+}
+
+// Mapea un product.template (lo que se muestra como "artículo" en el catálogo).
+// Si el template tiene una sola variante (variantCount === 1), variantId es el id
+// de esa variante para poder añadirla al carrito directamente. Si tiene >1
+// variante, el carrito necesita que el comercial elija una en el modal.
+export function mapTemplate(r) {
+  const categName = r.categ_id?.[1] || '';
+  const variantIds = r.product_variant_ids || [];
+  return {
+    id:           `T${String(r.id).padStart(3,'0')}`,
+    templateId:   r.id,
+    odooId:       variantIds.length === 1 ? variantIds[0] : null, // solo si tiene una sola variante
+    sku:          r.default_code || '',
+    ean:          r.barcode || '',
+    name:         r.name, // sin paréntesis de variante (display_name los trae)
+    family:       r.categ_id?.[0] ?? null,
+    brand:        '',
+    pvp:          r.list_price || 0,
+    stock:        r.qty_available || 0,
+    oferta:       false,
+    promo:        null,
+    color:        colorFor(categName),
+    glyph:        glyphFor(categName),
+    variantCount: r.product_variant_count || variantIds.length,
+    variantIds,
+  };
+}
+
+// Variante concreta de un template (product.product). Extrae las características
+// de la variante desde el display_name "Nombre (Color: Azul, Tamaño: M)".
+export function mapVariant(r) {
+  const dn = r.display_name || r.name || '';
+  const m = dn.match(/\(([^)]+)\)\s*$/);
+  return {
+    id:        `V${String(r.id).padStart(3,'0')}`,
+    odooId:    r.id,
+    sku:       r.default_code || '',
+    ean:       r.barcode || '',
+    name:      m ? dn.replace(/\s*\([^)]+\)\s*$/, '').trim() : dn,
+    attrLabel: m ? m[1] : '', // ej. "Color: Azul, Tamaño: M"
+    pvp:       r.list_price || 0,
+    stock:     r.qty_available || 0,
   };
 }
 

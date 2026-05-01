@@ -105,7 +105,7 @@ export default function App() {
       setPromos(prs);
       setOrders(ords);
       setFamilies(fams);
-      setClient(cls[0] || null);
+      setClient(null);
       setCart({});
     })();
     return () => { cancel = true; };
@@ -117,11 +117,21 @@ export default function App() {
 
   const tariffMult = useMemo(() => buildTariffMult(tariffs), [tariffs]);
   const tariff = client?.tariff || 'T2';
-  const lines = Object.entries(cart).filter(([,n])=>n>0);
-  const orderTotal = lines.reduce((a,[id,n])=>{
-    const p = products.find(x=>x.id===id);
-    return a + (p ? p.pvp * (tariffMult[tariff]||1) * n : 0);
-  }, 0) * 1.21;
+  // Cart entries: { [variantOdooId]: { qty, templateId, name, attrLabel?, price, sku, ean?, color?, glyph? } }
+  const lines = Object.entries(cart).filter(([,e]) => e?.qty > 0);
+  const orderTotal = lines.reduce((a,[,e]) => a + (e.price * (tariffMult[tariff]||1) * e.qty), 0) * 1.21;
+
+  // Helper para añadir / actualizar cantidad de una variante en el carrito.
+  // qty=0 elimina la línea. info se mezcla en la entrada (nombre, precio, etc.).
+  const updateCartQty = (variantId, qty, info = null) => {
+    if (!variantId) return;
+    setCart(prev => {
+      const next = { ...prev };
+      if (qty <= 0) delete next[variantId];
+      else next[variantId] = { ...prev[variantId], ...(info || {}), qty };
+      return next;
+    });
+  };
 
   const titles = {
     dashboard:'Inicio', catalog:'Catálogo', orders:'Pedidos', clients:'Clientes',
@@ -134,7 +144,7 @@ export default function App() {
       await api.createOrder({
         partnerId: client.odooId || null,
         pricelistId: tariffs.find(t=>t.id===tariff)?.odooId || null,
-        lines: lines.map(([id,qty]) => ({ productId: products.find(p=>p.id===id)?.odooId, qty })),
+        lines: lines.map(([variantId, e]) => ({ productId: Number(variantId), qty: e.qty })),
       });
       const fresh = await api.orders();
       setOrders(fresh);
@@ -143,6 +153,7 @@ export default function App() {
       setOrders([{ id, client: client.id, date: new Date().toISOString().slice(0,10), total: orderTotal, lines: lines.length, status:'borrador' }, ...orders]);
     }
     setCart({});
+    setClient(null);
     setOrderOpen(false);
     setRoute('orders');
   };
@@ -182,7 +193,7 @@ export default function App() {
         <ApiKeyBanner health={health} isAdmin={salesman.role==='admin'}/>
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
-          {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
+          {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)}/>}
           {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products}/>}
@@ -195,8 +206,8 @@ export default function App() {
       </div>
 
       <ClientPicker open={pickerOpen} onClose={()=>setPickerOpen(false)} clients={clients} current={client} onPick={setClient}/>
-      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} setCart={setCart} client={client} onConfirm={onConfirm} products={products} tariffMult={tariffMult}/>
-      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} qty={cart[productOpen?.id]||0} setQty={n=>setCart({...cart,[productOpen.id]:n})} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
+      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} tariffMult={tariffMult} tariff={tariff}/>
+      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
     </div>
   );

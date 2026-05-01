@@ -3,9 +3,14 @@ import { Icon, ProdGlyph } from './Icon';
 import { productImageUrl } from '../api';
 
 // Imagen del producto con fallback al glyph cuando no hay imagen en Odoo.
+// Acepta tanto productos con odooId (variante) como con templateId (plantilla).
 function ProductImage({ p, size = '62%' }) {
   const [failed, setFailed] = useState(false);
-  const url = !failed && p.odooId ? productImageUrl(p.odooId) : null;
+  let url = null;
+  if (!failed) {
+    if (p.templateId) url = productImageUrl({ templateId: p.templateId });
+    else if (p.odooId) url = productImageUrl(p.odooId);
+  }
   if (!url) {
     return <ProdGlyph kind={p.glyph} size={size} color="rgba(20,24,26,0.55)"/>;
   }
@@ -20,7 +25,7 @@ function ProductImage({ p, size = '62%' }) {
   );
 }
 
-export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen, showStock = false }) {
+export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMult = {}, onOpen, showStock = false }) {
   const price = p.pvp * (tariffMult[tariff] || 1);
   const lowStock = p.stock > 0 && p.stock < 20;
   const noStock = p.stock === 0;
@@ -50,7 +55,11 @@ export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen, s
           )}
         </div>
         <div className="hero-cta" onClick={e => e.stopPropagation()}>
-          {active ? (
+          {isMulti ? (
+            <button className="btn btn-secondary btn-sm" onClick={onOpen} title="Elegir variante">
+              <Icon name="chev-right" size={14}/> Variantes
+            </button>
+          ) : active ? (
             <div className="stepper active lg">
               <button onClick={() => setQty(Math.max(0, qty - 1))}><Icon name="minus" size={14}/></button>
               <input value={qty} onChange={e => setQty(Math.max(0, parseInt(e.target.value)||0))}/>
@@ -67,7 +76,7 @@ export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen, s
   );
 }
 
-export function ProductRow({ p, qty, setQty, tariff, tariffMult = {}, onOpen, showStock = false }) {
+export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult = {}, onOpen, showStock = false }) {
   const price = p.pvp * (tariffMult[tariff] || 1);
   const noStock = p.stock === 0;
   const lowStock = p.stock > 0 && p.stock < 20;
@@ -90,7 +99,11 @@ export function ProductRow({ p, qty, setQty, tariff, tariffMult = {}, onOpen, sh
         </div>
       )}
       <div onClick={e => e.stopPropagation()} style={{ display:'flex', justifyContent:'flex-end' }}>
-        {qty > 0 ? (
+        {isMulti ? (
+          <button className="btn btn-secondary btn-sm" onClick={onOpen}>
+            <Icon name="chev-right" size={14}/> Variantes
+          </button>
+        ) : qty > 0 ? (
           <div className="stepper active">
             <button onClick={() => setQty(Math.max(0, qty - 1))}><Icon name="minus" size={14}/></button>
             <input value={qty} onChange={e => setQty(Math.max(0, parseInt(e.target.value)||0))}/>

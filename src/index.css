@@ -133,6 +133,23 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   flex-shrink: 0;
 }
 .tb-burger:hover { background: var(--surface-2); }
+
+/* Topbar: priorizamos cliente y carrito en pantallas estrechas */
+@media (max-width: 1000px) {
+  .tb-sync { display: none; }
+}
+@media (max-width: 880px) {
+  .tb-bell { display: none; }
+  .client-pill { max-width: 200px; padding: 5px 10px 5px 5px; }
+  .client-pill .name { max-width: 130px; font-size: 13px; }
+  .client-pill .meta { max-width: 130px; font-size: 11px; }
+  .tb-cart-total { display: none; }
+  .topbar { padding: 0 12px; gap: 8px; }
+}
+@media (max-width: 700px) {
+  .client-pill .pill-text { display: none; }
+  .client-pill { padding: 4px; }
+}
 .app-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 .app-content { flex: 1; overflow: auto; padding: 0; min-height: 0; }
 

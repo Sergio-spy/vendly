@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 
-export function OrderDrawer({ open, onClose, cart, setCart, client, onConfirm, products = [], tariffMult = {} }) {
+export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, tariff: tariffProp, tariffMult = {} }) {
   const [discount, setDiscount] = useState(0);
   if (!open) return null;
-  const tariff = client?.tariff || 'T2';
-  const lines = Object.entries(cart).filter(([,n]) => n > 0).map(([id,n]) => {
-    const p = products.find(x => x.id === id);
-    if (!p) return null;
-    const price = p.pvp * (tariffMult[tariff] || 1);
-    return { p, qty: n, price, total: price * n };
-  }).filter(Boolean);
+  const tariff = tariffProp || client?.tariff || 'T2';
+  // Cart entries: { [variantOdooId]: { qty, templateId, name, attrLabel?, price, sku, ean?, color?, glyph? } }
+  const lines = Object.entries(cart).filter(([,e]) => e?.qty > 0).map(([variantId, e]) => {
+    const price = e.price * (tariffMult[tariff] || 1);
+    return { variantId, e, qty: e.qty, price, total: price * e.qty };
+  });
   const subtotal = lines.reduce((a,l)=>a+l.total, 0);
   const desc = subtotal * (discount/100);
   const base = subtotal - desc;
@@ -42,19 +41,20 @@ export function OrderDrawer({ open, onClose, cart, setCart, client, onConfirm, p
           ) : (
             <div className="vstack" style={{ gap: 8 }}>
               {lines.map(l => (
-                <div key={l.p.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 10 }}>
-                  <div className="prod-img" style={{ width: 44, height: 44, background: l.p.color, flexShrink: 0 }}>
-                    <ProductImage p={l.p} size={28}/>
+                <div key={l.variantId} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 10 }}>
+                  <div className="prod-img" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                    <ProductImage p={{ templateId: l.e.templateId, name: l.e.name, glyph: l.e.glyph }} size={28}/>
                   </div>
                   <div style={{ flex:1, minWidth: 0 }}>
-                    <div className="t-tiny">{l.p.brand} · {l.p.sku}</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l.p.name}</div>
+                    <div className="t-tiny">{l.e.sku || ''}{l.e.sku && l.e.ean ? ' · ' : ''}{l.e.ean || ''}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l.e.name}</div>
+                    {l.e.attrLabel && <div className="t-small">{l.e.attrLabel}</div>}
                     <div className="t-small tabular">{l.price.toFixed(2)} € / ud</div>
                   </div>
                   <div className="stepper">
-                    <button onClick={()=>setCart({...cart, [l.p.id]: Math.max(0, l.qty-1)})}><Icon name="minus" size={14}/></button>
-                    <input value={l.qty} onChange={e=>setCart({...cart, [l.p.id]: Math.max(0, parseInt(e.target.value)||0)})}/>
-                    <button onClick={()=>setCart({...cart, [l.p.id]: l.qty+1})}><Icon name="plus" size={14}/></button>
+                    <button onClick={()=>updateCartQty(Number(l.variantId), Math.max(0, l.qty-1))}><Icon name="minus" size={14}/></button>
+                    <input value={l.qty} onChange={e=>updateCartQty(Number(l.variantId), Math.max(0, parseInt(e.target.value)||0))}/>
+                    <button onClick={()=>updateCartQty(Number(l.variantId), l.qty+1)}><Icon name="plus" size={14}/></button>
                   </div>
                   <div className="tabular bold" style={{ width: 70, textAlign:'right' }}>{l.total.toFixed(2)} €</div>
                 </div>
