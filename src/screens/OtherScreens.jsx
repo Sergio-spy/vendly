@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Icon, ProdGlyph } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
+import { ClientForm } from './ClientForm';
+import { TariffAssignModal } from './TariffAssignModal';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -11,7 +13,7 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onView }) {
+export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onView, onEdit }) {
   const [filter, setFilter] = useState('all');
   const [busy, setBusy] = useState(false);
   const filt = orders.filter(o => filter==='all' || o.status===filter);
@@ -49,6 +51,7 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
           <tbody>
             {filt.map(o => {
               const cl = clients.find(c => c.id === o.client);
+              const canEdit = o.status === 'borrador';
               return (
                 <tr key={o.id} style={{ cursor: onView ? 'pointer' : 'default' }} onClick={()=>onView?.(o)}>
                   <td className="bold">{o.id}</td>
@@ -57,7 +60,14 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
                   <td className="tabular">{o.lines}</td>
                   <td className="num bold tabular">{o.total.toFixed(2)} €</td>
                   <td><span className={`tag ${o.status==='exportado'?'tag-success':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span></td>
-                  <td><button className="btn btn-ghost btn-sm" onClick={(e)=>{ e.stopPropagation(); onView?.(o); }}><Icon name="eye" size={14}/></button></td>
+                  <td onClick={e=>e.stopPropagation()} style={{ whiteSpace:'nowrap' }}>
+                    <button className="btn btn-ghost btn-sm" title="Ver" onClick={()=>onView?.(o)}><Icon name="eye" size={14}/></button>
+                    {canEdit && (
+                      <button className="btn btn-ghost btn-sm" title="Editar" onClick={()=>onEdit?.(o)} style={{ marginLeft: 4 }}>
+                        <Icon name="edit" size={14}/>
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -68,15 +78,19 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
   );
 }
 
-export function ClientsScreen({ clients = [], onPick }) {
+export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh }) {
   const [q, setQ] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const filt = clients.filter(c => (c.name+c.code+c.city).toLowerCase().includes(q.toLowerCase()));
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack">
         <div className="t-display">Clientes</div>
         <div className="spacer"/>
-        <button className="btn btn-primary"><Icon name="plus" size={14}/> Alta de cliente</button>
+        <button className="btn btn-primary" onClick={()=>{ setEditing(null); setFormOpen(true); }}>
+          <Icon name="plus" size={14}/> Alta de cliente
+        </button>
       </div>
       <div className="hstack" style={{ gap: 10 }}>
         <div className="input-wrap" style={{ flex: 1, maxWidth: 420 }}>
@@ -86,7 +100,7 @@ export function ClientsScreen({ clients = [], onPick }) {
       </div>
       <div className="vstack" style={{ gap: 8 }}>
         {filt.map(c => (
-          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto', gap: 18, alignItems:'center' }} onClick={()=>onPick(c)}>
+          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto auto', gap: 12, alignItems:'center' }} onClick={()=>onPick(c)}>
             <div className="avatar lg">{c.code.slice(-2)}</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
@@ -105,6 +119,9 @@ export function ClientsScreen({ clients = [], onPick }) {
               <div className="t-tiny">ÚLT. PEDIDO</div>
               <div className="tabular muted">{c.lastOrder || '—'}</div>
             </div>
+            <button className="btn btn-ghost btn-icon btn-sm" title="Editar cliente" onClick={(e)=>{ e.stopPropagation(); setEditing(c); setFormOpen(true); }}>
+              <Icon name="edit" size={14}/>
+            </button>
             <Icon name="chev-right" size={16} style={{ color:'var(--ink-4)' }}/>
           </div>
         ))}
@@ -116,11 +133,26 @@ export function ClientsScreen({ clients = [], onPick }) {
           </div>
         )}
       </div>
+
+      <ClientForm
+        open={formOpen}
+        mode={editing ? 'edit' : 'create'}
+        client={editing}
+        tariffs={tariffs}
+        onClose={()=>{ setFormOpen(false); setEditing(null); }}
+        onSaved={()=>{ onRefresh?.(); }}
+      />
     </div>
   );
 }
 
-export function TariffsScreen({ tariffs = [], products = [] }) {
+export function TariffsScreen({ tariffs = [], products = [], clients = [], onClientsRefresh }) {
+  const [assignTariff, setAssignTariff] = useState(null);
+  // Recalcular cuántos clientes tiene cada tarifa a partir de la lista real.
+  const counts = clients.reduce((acc, c) => {
+    if (c.tariff) acc[c.tariff] = (acc[c.tariff] || 0) + 1;
+    return acc;
+  }, {});
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack"><div className="t-display">Tarifas</div><div className="spacer"/><button className="btn btn-primary"><Icon name="plus" size={14}/> Nueva tarifa</button></div>
@@ -136,12 +168,19 @@ export function TariffsScreen({ tariffs = [], products = [] }) {
             </div>
             <div>
               <div className="t-tiny">CLIENTES</div>
-              <div className="tabular bold" style={{ fontSize: 20 }}>{t.clients}</div>
+              <div className="tabular bold" style={{ fontSize: 20 }}>{counts[t.name] ?? t.clients}</div>
             </div>
-            <button className="btn btn-secondary btn-sm">Asignar a clientes</button>
+            <button className="btn btn-secondary btn-sm" onClick={()=>setAssignTariff(t)} disabled={!t.odooId}>Asignar a clientes</button>
           </div>
         ))}
       </div>
+      <TariffAssignModal
+        open={!!assignTariff}
+        tariff={assignTariff}
+        clients={clients}
+        onClose={()=>setAssignTariff(null)}
+        onSaved={()=>{ onClientsRefresh?.(); }}
+      />
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}><div className="t-h2">Comparador de precios</div></div>
         <table className="tbl">

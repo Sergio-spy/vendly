@@ -39,6 +39,7 @@ export default function App() {
   const [orderOpen, setOrderOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(null);
   const [orderDetailOpen, setOrderDetailOpen] = useState(null);
+  const [editingOrderId, setEditingOrderId] = useState(null);
   const [cart, setCart] = useState({});
 
   const [products, setProducts] = useState([]);
@@ -140,22 +141,65 @@ export default function App() {
   };
 
   const onConfirm = async () => {
+    const payload = {
+      partnerId: client?.odooId || null,
+      pricelistId: tariffs.find(t=>t.id===tariff)?.odooId || null,
+      lines: lines.map(([variantId, e]) => ({ productId: Number(variantId), qty: e.qty })),
+    };
     try {
-      await api.createOrder({
-        partnerId: client.odooId || null,
-        pricelistId: tariffs.find(t=>t.id===tariff)?.odooId || null,
-        lines: lines.map(([variantId, e]) => ({ productId: Number(variantId), qty: e.qty })),
-      });
+      if (editingOrderId) {
+        await api.updateOrder(editingOrderId, payload);
+      } else {
+        await api.createOrder(payload);
+      }
       const fresh = await api.orders();
       setOrders(fresh);
-    } catch {
-      const id = 'PD-' + Math.floor(Math.random()*9000+1000);
-      setOrders([{ id, client: client.id, date: new Date().toISOString().slice(0,10), total: orderTotal, lines: lines.length, status:'borrador' }, ...orders]);
+    } catch (e) {
+      // Solo en modo mock o error puntual: dejamos un borrador local para no perder el trabajo.
+      if (!editingOrderId) {
+        const id = 'PD-' + Math.floor(Math.random()*9000+1000);
+        setOrders([{ id, client: client?.id, date: new Date().toISOString().slice(0,10), total: orderTotal, lines: lines.length, status:'borrador' }, ...orders]);
+      } else {
+        alert('No se pudo guardar el pedido: ' + e.message);
+        return;
+      }
     }
     setCart({});
     setClient(null);
+    setEditingOrderId(null);
     setOrderOpen(false);
     setRoute('orders');
+  };
+
+  // Reabre un pedido borrador como carrito para editarlo.
+  const onEditOrder = async (orderRow) => {
+    if (orderRow.status !== 'borrador') {
+      alert('Solo se pueden editar pedidos en estado borrador.');
+      return;
+    }
+    try {
+      const detail = await api.order(orderRow.odooId);
+      const newCart = {};
+      for (const l of detail.lines || []) {
+        if (!l.productId) continue;
+        newCart[l.productId] = {
+          qty: l.qty,
+          name: l.productName || l.description,
+          price: l.price,
+          sku: '', ean: '',
+        };
+      }
+      // Cliente: buscar en la lista cargada por id Odoo.
+      const partnerId = orderRow.client; // formato C{id}
+      const cl = clients.find(x => x.id === partnerId);
+      setClient(cl || null);
+      setCart(newCart);
+      setEditingOrderId(orderRow.odooId);
+      setOrderOpen(true);
+      setRoute('catalog');
+    } catch (e) {
+      alert('No se pudo abrir el pedido: ' + e.message);
+    }
   };
 
   const onLogout = () => { auth.clear(); setSalesman(null); setProducts([]); setClients([]); setOrders([]); };
@@ -194,9 +238,9 @@ export default function App() {
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
-          {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)}/>}
-          {route==='clients'   && <ClientsScreen clients={clients} onPick={c=>{setClient(c); setRoute('catalog');}}/>}
-          {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products}/>}
+          {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)} onEdit={onEditOrder}/>}
+          {route==='clients'   && <ClientsScreen clients={clients} tariffs={tariffs} onPick={c=>{setClient(c); setRoute('catalog');}} onRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}/>}
+          {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products} clients={clients} onClientsRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}/>}
           {route==='promos'    && <PromosScreen promos={promos} products={products}/>}
           {route==='stock'     && <StockScreen products={products}/>}
           {route==='collect'   && <CollectScreen clients={clients}/>}
@@ -206,7 +250,7 @@ export default function App() {
       </div>
 
       <ClientPicker open={pickerOpen} onClose={()=>setPickerOpen(false)} clients={clients} current={client} onPick={setClient}/>
-      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} tariffMult={tariffMult} tariff={tariff}/>
+      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
       <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
     </div>

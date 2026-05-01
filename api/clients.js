@@ -23,16 +23,44 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, vat, city, street, phone } = req.body || {};
+      const { name, vat, ref, city, street, phone, pricelistId, paymentTermId } = req.body || {};
       if (!name) return res.status(400).json({ error: 'Falta name' });
       if (MOCK_MODE) {
         return res.status(200).json({ id: 'C' + Math.floor(Math.random()*900+100) });
       }
-      const vals = { name, vat, city, street, phone, customer_rank: 1 };
+      const vals = { name, customer_rank: 1 };
+      if (vat != null)         vals.vat = vat;
+      if (ref != null)         vals.ref = ref;
+      if (city != null)        vals.city = city;
+      if (street != null)      vals.street = street;
+      if (phone != null)       vals.phone = phone;
+      if (pricelistId)         vals.property_product_pricelist = pricelistId;
+      if (paymentTermId)       vals.property_payment_term_id = paymentTermId;
       // Si el comercial tiene tag, etiqueta el cliente para que solo él lo vea.
-      if (c.odooTagId) vals.category_id = [[6, 0, [c.odooTagId]]];
+      if (c.odooTagId)         vals.category_id = [[6, 0, [c.odooTagId]]];
       const odooId = await call('res.partner', 'create', [vals]);
       return res.status(200).json({ id: `C${String(odooId).padStart(2,'0')}`, odooId });
+    }
+
+    if (req.method === 'PUT') {
+      const odooId = parseInt(req.body?.odooId, 10);
+      if (!odooId) return res.status(400).json({ error: 'Falta odooId' });
+      if (MOCK_MODE) return res.status(200).json({ ok: true });
+
+      const { name, vat, ref, city, street, phone, pricelistId, paymentTermId } = req.body || {};
+      const vals = {};
+      if (name !== undefined)         vals.name = name;
+      if (vat !== undefined)          vals.vat = vat;
+      if (ref !== undefined)          vals.ref = ref;
+      if (city !== undefined)         vals.city = city;
+      if (street !== undefined)       vals.street = street;
+      if (phone !== undefined)        vals.phone = phone;
+      if (pricelistId !== undefined)  vals.property_product_pricelist = pricelistId || false;
+      if (paymentTermId !== undefined) vals.property_payment_term_id = paymentTermId || false;
+
+      if (Object.keys(vals).length === 0) return res.status(400).json({ error: 'Sin cambios' });
+      await call('res.partner', 'write', [[odooId], vals]);
+      return res.status(200).json({ ok: true });
     }
 
     res.status(405).end();

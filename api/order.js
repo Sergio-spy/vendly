@@ -1,6 +1,9 @@
 // GET /api/order?id=ODOO_ID — detalle completo de un pedido (cabecera + líneas).
+// PUT /api/order?id=ODOO_ID — reemplaza las líneas y opcionalmente cliente/tarifa.
+//   Body: { partnerId?, pricelistId?, lines: [{ productId, qty }] }
+//   Solo permite editar pedidos en estado 'draft'.
 
-import { MOCK_MODE, search_read } from './_lib/odoo.js';
+import { MOCK_MODE, search_read, call } from './_lib/odoo.js';
 import { mapOrder } from './_lib/mappers.js';
 import { requireComercial } from './_lib/auth.js';
 
@@ -12,7 +15,35 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Falta id' });
 
   try {
-    if (MOCK_MODE) return res.status(200).json({ order: null, lines: [] });
+    if (MOCK_MODE) {
+      if (req.method === 'PUT') return res.status(200).json({ ok: true });
+      return res.status(200).json({ order: null, lines: [] });
+    }
+
+    if (req.method === 'PUT') {
+      // Comprobar estado: solo se editan borradores.
+      const cur = await search_read('sale.order', [['id','=', id]], ['state'], { limit: 1 });
+      if (!cur.length) return res.status(404).json({ error: 'No encontrado' });
+      const state = cur[0].state;
+      if (state !== 'draft') {
+        return res.status(409).json({ error: `No editable (estado: ${state})` });
+      }
+
+      const { partnerId, pricelistId, lines = [] } = req.body || {};
+      const cleanLines = lines
+        .filter(l => l && Number.isFinite(Number(l.productId)) && Number(l.qty) > 0)
+        .map(l => ({ product_id: Number(l.productId), product_uom_qty: Number(l.qty) }));
+
+      const vals = {};
+      if (Number.isFinite(Number(partnerId)))    vals.partner_id   = Number(partnerId);
+      if (Number.isFinite(Number(pricelistId)))  vals.pricelist_id = Number(pricelistId);
+      // Reemplazar todas las líneas: (5,) elimina todas, (0,0,vals) crea cada nueva.
+      vals.order_line = [[5]].concat(cleanLines.map(l => [0, 0, l]));
+
+      await call('sale.order', 'write', [[id], vals]);
+      return res.status(200).json({ ok: true });
+    }
+
 
     // Cabecera
     const orders = await search_read('sale.order', [['id','=', id]],

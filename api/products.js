@@ -14,10 +14,25 @@ export default async function handler(req, res) {
     // Resolvemos los IDs de las categorías configuradas → así solo
     // traemos los productos de las familias relevantes (no todo el catálogo).
     const cats = await search_read('product.category', [], ['name','complete_name','parent_id'], { limit: 500 });
-    const familyIds = resolveFamilies(cats).filter(f => f.odooId != null).map(f => f.odooId);
+    const fams = resolveFamilies(cats).filter(f => f.odooId != null);
+    const familyIds = fams.map(f => f.odooId);
 
+    // Categorías de "Palos Aluminio" — para esos productos:
+    //   1) Solo se muestran los que llevan "agujero" en el nombre.
+    //   2) Se tratan como single-variant (no se enseña selector de variantes).
+    const palosCategIds = new Set(
+      fams.filter(f => f.key.startsWith('Palos Aluminio')).map(f => f.odooId)
+    );
+
+    // Dominio Odoo: sale_ok=true AND categ_id IN families
+    //   AND (categ_id NOT IN palos OR name ILIKE 'agujero')
     const domain = [['sale_ok','=',true]];
     if (familyIds.length) domain.push(['categ_id','in', familyIds]);
+    if (palosCategIds.size) {
+      domain.push('|',
+        ['categ_id','not in', [...palosCategIds]],
+        ['name','ilike','agujero']);
+    }
 
     const fields = [
       'name', 'default_code', 'barcode',
@@ -25,7 +40,16 @@ export default async function handler(req, res) {
       'product_variant_count', 'product_variant_ids',
     ];
     const rows = await search_read('product.template', domain, fields, { limit: 1000 });
-    res.status(200).json(rows.map(mapTemplate));
+    const items = rows.map(r => {
+      const m = mapTemplate(r);
+      // Para palos aluminio: forzar single-variant (la primera variante)
+      if (palosCategIds.has(r.categ_id?.[0]) && m.variantIds?.length) {
+        m.variantCount = 1;
+        m.odooId = m.variantIds[0];
+      }
+      return m;
+    });
+    res.status(200).json(items);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

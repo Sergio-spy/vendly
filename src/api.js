@@ -64,5 +64,8 @@ export const api = {
 
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),
+  updateOrder:  (id, payload) => req(`/order?id=${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify(payload) }),
   createClient: (payload) => req('/clients', { method:'POST', body: JSON.stringify(payload) }),
+  updateClient: (payload) => req('/clients', { method:'PUT',  body: JSON.stringify(payload) }),
+  assignTariff: (payload) => req('/assign-tariff', { method:'POST', body: JSON.stringify(payload) }),
 };

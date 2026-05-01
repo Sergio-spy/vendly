@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 
-export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, tariff: tariffProp, tariffMult = {} }) {
+export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, tariff: tariffProp, tariffMult = {}, editing = false }) {
   const [discount, setDiscount] = useState(0);
   if (!open) return null;
   const tariff = tariffProp || client?.tariff || 'T2';
@@ -23,7 +23,7 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
       <div className="drawer">
         <div className="drawer-hd">
           <div>
-            <div className="t-tiny">Pedido en curso</div>
+            <div className="t-tiny">{editing ? 'Editando pedido' : 'Pedido en curso'}</div>
             <div className="t-h1">{client ? client.name : 'Sin cliente'}</div>
             <div className="t-small">#{client?.code} · Tarifa {tariff} · {client?.paymentTerm}</div>
           </div>
@@ -43,7 +43,7 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
               {lines.map(l => (
                 <div key={l.variantId} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 10 }}>
                   <div className="prod-img" style={{ width: 44, height: 44, flexShrink: 0 }}>
-                    <ProductImage p={{ templateId: l.e.templateId, name: l.e.name, glyph: l.e.glyph }} size={28}/>
+                    <ProductImage p={{ templateId: l.e.templateId, odooId: Number(l.variantId), name: l.e.name, glyph: l.e.glyph }} size={28}/>
                   </div>
                   <div style={{ flex:1, minWidth: 0 }}>
                     <div className="t-tiny">{l.e.sku || ''}{l.e.sku && l.e.ean ? ' · ' : ''}{l.e.ean || ''}</div>
@@ -83,7 +83,7 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
           <div className="hstack" style={{ gap: 8 }}>
             <button className="btn btn-secondary" style={{ flex:1 }}>Guardar borrador</button>
             <button className="btn btn-primary btn-lg" style={{ flex:2 }} onClick={onConfirm} disabled={lines.length===0}>
-              <Icon name="check" size={16}/> Confirmar pedido
+              <Icon name="check" size={16}/> {editing ? 'Guardar cambios' : 'Confirmar pedido'}
             </button>
           </div>
         </div>

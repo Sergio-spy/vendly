@@ -44,7 +44,12 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
 
       <div className="hero-body">
         <div className="hero-info">
-          <div className="hero-meta">{p.brand}{p.brand && p.sku ? ' · ' : ''}{p.sku}</div>
+          <div className="hero-meta">
+            {p.sku && <>Ref: <span className="tabular">{p.sku}</span></>}
+            {p.sku && p.ean ? ' · ' : ''}
+            {p.ean && <>EAN: <span className="tabular">{p.ean}</span></>}
+            {!p.sku && !p.ean && p.brand}
+          </div>
           <div className="hero-name">{p.name}</div>
           <div className="hero-price">{price.toFixed(2)} €</div>
           {showStock && (
@@ -88,7 +93,11 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
         <ProductImage p={p} size={32}/>
       </div>
       <div>
-        <div className="t-tiny">{p.brand} {p.brand && p.sku && '·'} {p.sku}</div>
+        <div className="t-tiny">
+          {p.sku && <>Ref: <span className="tabular">{p.sku}</span></>}
+          {p.sku && p.ean ? ' · ' : ''}
+          {p.ean && <>EAN: <span className="tabular">{p.ean}</span></>}
+        </div>
         <div style={{ fontWeight: 600, fontSize: 'var(--d-fs-title)' }}>{p.name}</div>
       </div>
       <div className="tabular" style={{ fontWeight: 700 }}>{price.toFixed(2)} €</div>
