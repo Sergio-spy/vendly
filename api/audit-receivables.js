@@ -14,8 +14,11 @@ export default async function handler(req, res) {
   if (MOCK_MODE) return res.status(200).json({ rows: [], summary: {} });
 
   try {
-    // Filtrado por etiqueta del comercial — igual que /api/clients.
-    const partnerDomain = [['credit','>', 0]];
+    // Solo clientes asignados a algún comercial (etiqueta empezando por "Comercial").
+    const partnerDomain = [
+      ['credit','>', 0],
+      ['category_id.name','=ilike','Comercial%'],
+    ];
     if (c.odooTagId) partnerDomain.push(['category_id','in', [c.odooTagId]]);
 
     const partners = await search_read('res.partner', partnerDomain,
