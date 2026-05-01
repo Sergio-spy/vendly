@@ -19,7 +19,24 @@ export default async function handler(req, res) {
         'credit','credit_limit','total_invoiced',
         'property_product_pricelist','property_payment_term_id'];
       const rows = await search_read('res.partner', domain, fields, { limit: 1000 });
-      return res.status(200).json(rows.map(mapPartner));
+
+      // Sobrescribimos `balance` para excluir asientos de apertura no conciliados
+      // (migración del ERP anterior). Quedan así solo facturas pendientes reales.
+      const balanceMap = await computeRealBalances(rows.map(r => r.id));
+      const mapped = rows.map(r => {
+        const m = mapPartner(r);
+        if (balanceMap.has(r.id)) {
+          const real = balanceMap.get(r.id);
+          m.balance = real;
+          m.status  = real > 0 ? 'pendiente' : 'al-dia';
+        } else {
+          // Sin apuntes abiertos → saldo real 0.
+          m.balance = 0;
+          m.status  = 'al-dia';
+        }
+        return m;
+      });
+      return res.status(200).json(mapped);
     }
 
     if (req.method === 'POST') {
@@ -67,4 +84,28 @@ export default async function handler(req, res) {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+}
+
+// Calcula el saldo real de los partners excluyendo asientos de apertura.
+// Devuelve Map<partnerId, balance> en €.
+const OPENING_RE = /apertura|opening/i;
+async function computeRealBalances(partnerIds) {
+  const map = new Map();
+  if (!partnerIds.length) return map;
+  const lines = await search_read('account.move.line',
+    [
+      ['partner_id','in', partnerIds],
+      ['account_id.account_type','=','asset_receivable'],
+      ['reconciled','=', false],
+      ['parent_state','=','posted'],
+    ],
+    ['partner_id','debit','credit','ref','name','move_name'],
+    { limit: 5000 });
+  for (const l of lines) {
+    if (OPENING_RE.test(l.ref || '') || OPENING_RE.test(l.name || '') || OPENING_RE.test(l.move_name || '')) continue;
+    const pid = Array.isArray(l.partner_id) ? l.partner_id[0] : l.partner_id;
+    const delta = (l.debit || 0) - (l.credit || 0);
+    map.set(pid, (map.get(pid) || 0) + delta);
+  }
+  return map;
 }
