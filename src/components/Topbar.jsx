@@ -1,8 +1,13 @@
 import { Icon } from './Icon';
 
-export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines }) {
+export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, onToggleSidebar }) {
   return (
     <header className="topbar">
+      {onToggleSidebar && (
+        <button className="tb-burger" onClick={onToggleSidebar} title="Mostrar/ocultar menú" aria-label="Mostrar/ocultar menú">
+          <Icon name="menu" size={20}/>
+        </button>
+      )}
       <div className="tb-title">{title}</div>
       <span className="tag tag-neutral t-num" style={{ marginLeft: 6 }}>
         <Icon name={online ? 'cloud' : 'wifi-off'} size={12}/> {online ? 'Sincronizado' : 'Offline'} · {lastSync}

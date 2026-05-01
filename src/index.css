@@ -113,7 +113,26 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   grid-template-columns: 240px 1fr;
   height: 100%;
   background: var(--bg);
+  transition: grid-template-columns .18s cubic-bezier(.2,.7,.3,1);
 }
+.app[data-collapsed="true"] { grid-template-columns: 68px 1fr; }
+.app[data-collapsed="true"] .sidebar { padding: 16px 8px; align-items: center; }
+.app[data-collapsed="true"] .sb-brand { padding: 6px 0 16px; justify-content: center; border-bottom: 1px solid var(--border); margin-bottom: 12px; width: 100%; }
+.app[data-collapsed="true"] .sb-section { display: none; }
+.app[data-collapsed="true"] .sb-item { justify-content: center; padding: 10px 8px; width: 52px; }
+.app[data-collapsed="true"] .sb-item .badge { position: absolute; top: 2px; right: 2px; padding: 1px 5px; font-size: 10px; }
+.app[data-collapsed="true"] .sb-foot { flex-direction: column; gap: 8px; padding: 12px 0 4px; width: 100%; }
+
+.tb-burger {
+  display: inline-grid; place-items: center;
+  width: 38px; height: 38px;
+  border-radius: var(--r-2);
+  border: none; background: transparent;
+  color: var(--ink-2); cursor: pointer;
+  transition: background .12s;
+  flex-shrink: 0;
+}
+.tb-burger:hover { background: var(--surface-2); }
 .app-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 .app-content { flex: 1; overflow: auto; padding: 0; min-height: 0; }
 

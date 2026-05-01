@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
+import { ApiKeyBanner } from './components/ApiKeyBanner';
 import { LoginScreen } from './screens/LoginScreen';
 import { Dashboard } from './screens/Dashboard';
 import { Catalog } from './screens/Catalog';
@@ -21,6 +22,14 @@ export default function App() {
   const [density] = useState('regular');
   const [view] = useState('grid');
   const [cardSize] = useState(210);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('vendly_sidebar_collapsed') === '1'; } catch { return false; }
+  });
+  const toggleCollapsed = () => setCollapsed(c => {
+    const next = !c;
+    try { localStorage.setItem('vendly_sidebar_collapsed', next ? '1' : '0'); } catch {}
+    return next;
+  });
 
   const [salesman, setSalesman] = useState(null); // null = no logueado
   const [bootDone, setBootDone] = useState(false);
@@ -40,6 +49,7 @@ export default function App() {
   const [families, setFamilies] = useState([]);
   const [client, setClient]     = useState(null);
   const [mode, setMode]         = useState('…');
+  const [health, setHealth]     = useState(null);
   const [error, setError]       = useState(null);
 
   // Boot: si hay token guardado, intentamos /api/auth/me; si va, cargamos datos.
@@ -88,6 +98,7 @@ export default function App() {
       if (cancel) return;
       const [h, prods, cls, tfs, prs, ords, fams] = result;
       setMode(h.mode);
+      setHealth(h);
       setProducts(prods);
       setClients(cls);
       setTariffs(tfs);
@@ -154,8 +165,8 @@ export default function App() {
   );
 
   return (
-    <div className="app">
-      <Sidebar route={route} setRoute={setRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout}/>
+    <div className="app" data-collapsed={collapsed ? 'true' : 'false'}>
+      <Sidebar route={route} setRoute={setRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={collapsed}/>
       <div className="app-main">
         <Topbar
           title={titles[route]}
@@ -166,7 +177,9 @@ export default function App() {
           orderTotal={orderTotal}
           orderLines={lines.length}
           onOpenOrder={()=>setOrderOpen(true)}
+          onToggleSidebar={toggleCollapsed}
         />
+        <ApiKeyBanner health={health} isAdmin={salesman.role==='admin'}/>
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} setCart={setCart} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}

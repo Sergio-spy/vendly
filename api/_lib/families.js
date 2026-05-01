@@ -64,23 +64,92 @@ export function normalizePath(path) {
   return stripDiacritics(path).split('/').map(s => s.trim().toLowerCase()).join(' / ');
 }
 
-// Dado el listado de categorías de Odoo, devuelve solo las que matchean la config.
-// Cada item: { id, name, completeName, count }
+// Dado el listado de categorías de Odoo, devuelve un árbol aplanado en preorden.
+// Cada item: { key, name, depth, odooId, count, descendantIds, hasChildren }
+//   key             string único por nodo (ruta completa)
+//   name            último segmento del path (lo que se muestra)
+//   depth           0 = raíz; sirve para indentar en el rail
+//   odooId          id real de la categoría Odoo (solo si el path es hoja matcheada)
+//   count           productos del nodo + de sus descendientes
+//   descendantIds   ids Odoo de este nodo y todos los hijos (para filtrar productos)
+//   hasChildren     true si tiene hijos en el árbol
 export function resolveFamilies(odooCategories, productsByCategId = new Map()) {
-  const wanted = FAMILY_PATHS.map(p => ({ raw: p, norm: normalizePath(p) }));
-  const out = [];
+  const wanted = FAMILY_PATHS.map(p => ({
+    raw: p,
+    segments: p.split('/').map(s => s.trim()).filter(Boolean),
+    norm: normalizePath(p),
+  }));
+
+  const nodes = new Map(); // key -> node
+  const ensureNode = (segments, depth) => {
+    const key = segments.slice(0, depth + 1).join('/');
+    if (nodes.has(key)) return nodes.get(key);
+    const node = {
+      key,
+      name: segments[depth],
+      depth,
+      parentKey: depth > 0 ? segments.slice(0, depth).join('/') : null,
+      odooId: null,
+      ownCount: 0,
+      childKeys: [],
+    };
+    nodes.set(key, node);
+    if (node.parentKey && nodes.has(node.parentKey)) {
+      nodes.get(node.parentKey).childKeys.push(key);
+    }
+    return node;
+  };
+
+  const rootOrder = [];
+  const seenRoots = new Set();
   for (const w of wanted) {
     const cat = odooCategories.find(c => {
       const cn = stripDiacritics(c.complete_name || c.name || '').toLowerCase();
       return cn.endsWith(w.norm) || cn === w.norm;
     });
     if (!cat) continue;
-    out.push({
-      id: cat.id,
-      name: w.raw, // mostramos el nombre tal y como lo configuraste
-      completeName: cat.complete_name || cat.name,
-      count: productsByCategId.get(cat.id) || 0,
-    });
+
+    for (let i = 0; i < w.segments.length; i++) ensureNode(w.segments, i);
+    const leaf = nodes.get(w.segments.join('/'));
+    leaf.odooId = cat.id;
+    leaf.ownCount = productsByCategId.get(cat.id) || 0;
+
+    const root = w.segments[0];
+    if (!seenRoots.has(root)) { seenRoots.add(root); rootOrder.push(root); }
   }
+
+  // Roll up counts y descendantIds
+  const aggregate = (key) => {
+    const n = nodes.get(key);
+    let count = n.odooId != null ? n.ownCount : 0;
+    const ids = n.odooId != null ? [n.odooId] : [];
+    for (const c of n.childKeys) {
+      const r = aggregate(c);
+      count += r.count;
+      ids.push(...r.ids);
+    }
+    n.totalCount = count;
+    n.descendantIds = ids;
+    return { count, ids };
+  };
+  for (const r of rootOrder) aggregate(r);
+
+  // Flatten en preorden (estable: hijos en orden de inserción → orden de FAMILY_PATHS)
+  const out = [];
+  const visit = (key) => {
+    const n = nodes.get(key);
+    out.push({
+      key: n.key,
+      name: n.name,
+      depth: n.depth,
+      odooId: n.odooId,
+      count: n.totalCount,
+      descendantIds: n.descendantIds,
+      hasChildren: n.childKeys.length > 0,
+    });
+    for (const c of n.childKeys) visit(c);
+  };
+  for (const r of rootOrder) visit(r);
+
   return out;
 }

@@ -3,16 +3,21 @@ import { Icon } from '../components/Icon';
 import { ProductCard, ProductRow } from '../components/ProductCard';
 
 export function Catalog({ view, cart, setCart, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false }) {
-  const [family, setFamily] = useState('all');
+  const [familyKey, setFamilyKey] = useState('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
   const [onlyOffer, setOnlyOffer] = useState(false);
   const [onlyStock, setOnlyStock] = useState(false);
 
-  const allFamilies = [{ id:'all', name:'Todas', count: products.length }, ...families];
+  const familyByKey = new Map(families.map(f => [f.key, f]));
+  const selected = familyByKey.get(familyKey);
+  const selectedIds = selected?.descendantIds;
 
   const tariff = client?.tariff || 'T2';
-  let prods = products.filter(p => family==='all' || p.family===family);
+  let prods = products.filter(p => {
+    if (familyKey === 'all') return true;
+    return selectedIds ? selectedIds.includes(p.family) : false;
+  });
   if (q) prods = prods.filter(p => (p.name + p.sku + p.brand).toLowerCase().includes(q.toLowerCase()));
   if (onlyOffer) prods = prods.filter(p => p.oferta || p.promo);
   if (onlyStock) prods = prods.filter(p => p.stock > 0);
@@ -26,13 +31,22 @@ export function Catalog({ view, cart, setCart, client, openProduct, cardSize, pr
       <aside style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 16, overflowY:'auto' }}>
         <div className="t-tiny" style={{ marginBottom: 10 }}>Familias</div>
         <div className="vstack" style={{ gap: 2 }}>
-          {allFamilies.map(f => (
-            <button key={f.id}
-              onClick={()=>setFamily(f.id)}
+          <button
+            onClick={()=>setFamilyKey('all')}
+            className="sb-item"
+            data-active={String(familyKey==='all')}
+            title="Todas">
+            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0 }}>Todas</span>
+            <span className="badge">{products.length}</span>
+          </button>
+          {families.map(f => (
+            <button key={f.key}
+              onClick={()=>setFamilyKey(f.key)}
               className="sb-item"
-              data-active={String(family===f.id)}
-              title={f.name}>
-              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0 }}>{f.name}</span>
+              data-active={String(familyKey===f.key)}
+              title={f.name}
+              style={{ paddingLeft: 12 + f.depth * 14 }}>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0, fontWeight: f.hasChildren ? 600 : 500 }}>{f.name}</span>
               <span className="badge">{f.count}</span>
             </button>
           ))}

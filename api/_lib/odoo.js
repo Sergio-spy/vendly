@@ -51,6 +51,22 @@ export async function call(model, method, args = [], kwargs = {}) {
   });
 }
 
+// Ping de auth: hace un authenticate fresco contra Odoo y devuelve true si la API key responde.
+// No usa la caché, así detecta inmediatamente si las credenciales han caducado/se han revocado.
+export async function pingAuth() {
+  if (MOCK_MODE) return null;
+  try {
+    const uid = await jsonRpc('/jsonrpc', {
+      service: 'common',
+      method: 'authenticate',
+      args: [db, usr, key, {}],
+    });
+    return !!uid;
+  } catch {
+    return false;
+  }
+}
+
 // Atajos cómodos
 export const search_read = (model, domain = [], fields = [], opts = {}) =>
   call(model, 'search_read', [domain, fields], opts);
