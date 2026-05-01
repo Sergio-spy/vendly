@@ -14,7 +14,7 @@ function ProductImage({ p, size = '62%' }) {
       src={url}
       alt={p.name}
       onError={() => setFailed(true)}
-      style={{ width:'100%', height:'100%', objectFit:'contain', padding:'8%' }}
+      style={{ maxWidth:'88%', maxHeight:'88%', objectFit:'contain' }}
       loading="lazy"
     />
   );

@@ -86,13 +86,13 @@ export function ClientsScreen({ clients = [], onPick }) {
       </div>
       <div className="vstack" style={{ gap: 8 }}>
         {filt.map(c => (
-          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) 90px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto', gap: 18, alignItems:'center' }} onClick={()=>onPick(c)}>
+          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto', gap: 18, alignItems:'center' }} onClick={()=>onPick(c)}>
             <div className="avatar lg">{c.code.slice(-2)}</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
               <div className="t-small">#{c.code} · {c.city}{c.contact ? ` · ${c.contact}` : ''}</div>
             </div>
-            <span className="tag tag-info" style={{ background:'var(--surface-3)', color:'var(--ink-2)', justifySelf:'start' }}>{c.tariff}</span>
+            <span className="tag tag-info" style={{ background:'var(--surface-3)', color:'var(--ink-2)', justifySelf:'start', maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', display:'inline-block' }} title={c.tariff}>{c.tariff}</span>
             <div>
               <div className="t-tiny">VENTA YTD</div>
               <div className="tabular bold">{c.totalYtd.toFixed(2)} €</div>
