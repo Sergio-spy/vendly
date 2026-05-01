@@ -84,24 +84,37 @@ export function ClientsScreen({ clients = [], onPick }) {
           <input className="input input-search" placeholder="Buscar por nombre, código o ciudad…" value={q} onChange={e=>setQ(e.target.value)}/>
         </div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+      <div className="vstack" style={{ gap: 8 }}>
         {filt.map(c => (
-          <div key={c.id} className="card" style={{ padding: 18, cursor:'pointer' }} onClick={()=>onPick(c)}>
-            <div className="hstack" style={{ marginBottom: 12 }}>
-              <div className="avatar lg">{c.code.slice(-2)}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
-                <div className="t-small">#{c.code} · {c.city}</div>
-              </div>
-              <span className="tag tag-info" style={{ background:'var(--surface-3)', color:'var(--ink-2)' }}>{c.tariff}</span>
+          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) 90px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto', gap: 18, alignItems:'center' }} onClick={()=>onPick(c)}>
+            <div className="avatar lg">{c.code.slice(-2)}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
+              <div className="t-small">#{c.code} · {c.city}{c.contact ? ` · ${c.contact}` : ''}</div>
             </div>
-            <div className="hstack" style={{ gap: 16, fontSize: 12.5 }}>
-              <div><div className="t-tiny">VENTA YTD</div><div className="tabular bold">{c.totalYtd.toFixed(2)} €</div></div>
-              <div><div className="t-tiny">SALDO</div><div className="tabular" style={{ color: c.balance>0?'var(--warn)':'var(--ink-2)', fontWeight: 600 }}>{c.balance.toFixed(2)} €</div></div>
-              <div><div className="t-tiny">ÚLT. PEDIDO</div><div className="tabular muted">{c.lastOrder}</div></div>
+            <span className="tag tag-info" style={{ background:'var(--surface-3)', color:'var(--ink-2)', justifySelf:'start' }}>{c.tariff}</span>
+            <div>
+              <div className="t-tiny">VENTA YTD</div>
+              <div className="tabular bold">{c.totalYtd.toFixed(2)} €</div>
             </div>
+            <div>
+              <div className="t-tiny">SALDO</div>
+              <div className="tabular" style={{ color: c.balance>0?'var(--warn)':'var(--ink-2)', fontWeight: 600 }}>{c.balance.toFixed(2)} €</div>
+            </div>
+            <div>
+              <div className="t-tiny">ÚLT. PEDIDO</div>
+              <div className="tabular muted">{c.lastOrder || '—'}</div>
+            </div>
+            <Icon name="chev-right" size={16} style={{ color:'var(--ink-4)' }}/>
           </div>
         ))}
+        {filt.length === 0 && (
+          <div className="empty">
+            <div className="empty-ic"><Icon name="search" size={24}/></div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin clientes</div>
+            <div className="t-small">Prueba a quitar la búsqueda.</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -111,16 +124,21 @@ export function TariffsScreen({ tariffs = [], products = [] }) {
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack"><div className="t-display">Tarifas</div><div className="spacer"/><button className="btn btn-primary"><Icon name="plus" size={14}/> Nueva tarifa</button></div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+      <div className="vstack" style={{ gap: 8 }}>
         {tariffs.map(t => (
-          <div key={t.id} className="card" style={{ padding: 22, borderTop: `3px solid ${t.color}` }}>
-            <div className="hstack"><div className="t-h2">{t.name}</div><div className="spacer"/><span className="tag tag-neutral">{t.id}</span></div>
-            <div className="t-small" style={{ marginTop: 6, marginBottom: 14 }}>{t.desc}</div>
-            <div className="hstack" style={{ gap: 16 }}>
-              <div><div className="t-tiny">CLIENTES</div><div className="tabular bold" style={{ fontSize: 22 }}>{t.clients}</div></div>
-              <div className="spacer"/>
-              <button className="btn btn-secondary btn-sm">Asignar a clientes</button>
+          <div key={t.id} className="card" style={{ padding:'14px 18px 14px 22px', borderLeft: `4px solid ${t.color}`, display:'grid', gridTemplateColumns:'minmax(0, 1fr) 120px auto', gap: 18, alignItems:'center' }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="hstack" style={{ gap: 8 }}>
+                <div className="t-h2" style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</div>
+                <span className="tag tag-neutral">{t.id}</span>
+              </div>
+              {t.desc && <div className="t-small" style={{ marginTop: 2 }}>{t.desc}</div>}
             </div>
+            <div>
+              <div className="t-tiny">CLIENTES</div>
+              <div className="tabular bold" style={{ fontSize: 20 }}>{t.clients}</div>
+            </div>
+            <button className="btn btn-secondary btn-sm">Asignar a clientes</button>
           </div>
         ))}
       </div>

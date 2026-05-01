@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     // Resolvemos los IDs de las categorías configuradas → así solo
     // traemos los productos de las familias relevantes (no todo el catálogo).
     const cats = await search_read('product.category', [], ['name','complete_name','parent_id'], { limit: 500 });
-    const familyIds = resolveFamilies(cats).map(f => f.id);
+    const familyIds = resolveFamilies(cats).filter(f => f.odooId != null).map(f => f.odooId);
 
     const domain = [['sale_ok','=',true]];
     if (familyIds.length) domain.push(['categ_id','in', familyIds]);
