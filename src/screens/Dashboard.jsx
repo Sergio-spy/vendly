@@ -95,7 +95,7 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
               const p = products.find(x => x.id === pr.sku);
               return (
                 <div key={pr.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius: 'var(--r-2)', gap: 12 }}>
-                  <div className="prod-img" style={{ width: 42, height: 42, background: p?.color || 'var(--surface-2)' }}>
+                  <div className="prod-img" style={{ width: 42, height: 42 }}>
                     {p && <ProductImage p={p} size={28}/>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

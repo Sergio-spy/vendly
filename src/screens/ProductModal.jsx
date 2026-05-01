@@ -17,7 +17,7 @@ export function ProductModal({ product, onClose, qty, setQty, tariff, tariffMult
           <button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x"/></button>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap: 0 }}>
-          <div className="prod-img" style={{ height: 320, background: p.color, borderRadius: 0 }}>
+          <div className="prod-img" style={{ height: 320, borderRadius: 0 }}>
             <ProductImage p={p}/>
             {p.promo && <div style={{ position:'absolute', top: 14, left: 14, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{p.promo}</div>}
           </div>

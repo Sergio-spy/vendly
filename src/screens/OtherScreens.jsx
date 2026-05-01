@@ -172,7 +172,7 @@ export function PromosScreen({ promos = [], products = [] }) {
           const p = products.find(x => x.id === pr.sku);
           return (
             <div key={pr.id} className="card" style={{ padding: 0, overflow:'hidden' }}>
-              <div className="prod-img" style={{ height: 140, background: p?.color || 'var(--surface-2)', borderRadius: 0 }}>
+              <div className="prod-img" style={{ height: 140, borderRadius: 0 }}>
                 {p && <ProductImage p={p}/>}
                 <div style={{ position:'absolute', top: 12, left: 12, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{pr.kind}</div>
               </div>
@@ -314,7 +314,7 @@ export function KpiScreen({ clients = [], products = [] }) {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12 }}>
           {products.slice(0,4).map(p => (
             <div key={p.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)' }}>
-              <div className="prod-img" style={{ width: 40, height: 40, background: p.color }}><ProductImage p={p} size={26}/></div>
+              <div className="prod-img" style={{ width: 40, height: 40 }}><ProductImage p={p} size={26}/></div>
               <div style={{ flex:1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
                 <div className="t-small tabular">{Math.round(p.pvp*8)} ud · {(p.pvp*8).toFixed(0)} €</div>

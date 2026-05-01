@@ -391,6 +391,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .prod-card-hero:active { transform: scale(0.995); }
 .prod-card-hero .hero-img {
   aspect-ratio: 4 / 3;
+  background: var(--surface);
   display: grid; place-items: center;
   position: relative;
   overflow: hidden;
@@ -470,7 +471,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-num); }
 
 .prod-img {
-  background: var(--surface-2);
+  background: var(--surface);
   border-radius: var(--r-2);
   display: grid; place-items: center;
   position: relative;

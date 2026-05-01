@@ -28,7 +28,7 @@ export function ProductCard({ p, qty, setQty, tariff, tariffMult = {}, onOpen, s
 
   return (
     <article className="prod-card-hero" onClick={onOpen}>
-      <div className="hero-img" style={{ background: p.color }}>
+      <div className="hero-img">
         <ProductImage p={p}/>
         {p.promo && <div className="badge-promo">{p.promo}</div>}
         {p.oferta && !p.promo && <span className="tag tag-success badge-tag">OFERTA</span>}
@@ -75,7 +75,7 @@ export function ProductRow({ p, qty, setQty, tariff, tariffMult = {}, onOpen, sh
   const cols = showStock ? '48px 1fr 110px 90px 130px' : '48px 1fr 110px 130px';
   return (
     <div className="card" style={{ padding: 'var(--d-pad-row) 14px', display:'grid', gridTemplateColumns: cols, alignItems:'center', gap: 14, cursor:'pointer' }} onClick={onOpen}>
-      <div className="prod-img" style={{ width: 48, height: 48, background: p.color }}>
+      <div className="prod-img" style={{ width: 48, height: 48 }}>
         <ProductImage p={p} size={32}/>
       </div>
       <div>
