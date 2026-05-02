@@ -17,6 +17,7 @@ const key = process.env.ODOO_API_KEY;
 export const MOCK_MODE = !(url && db && usr && key);
 
 let cachedUid = null;
+let authPromise = null; // promesa compartida de authenticate() para queries concurrentes
 
 async function jsonRpc(path, params) {
   const r = await fetch(`${url}${path}`, {
@@ -31,13 +32,22 @@ async function jsonRpc(path, params) {
 
 async function authenticate() {
   if (cachedUid) return cachedUid;
-  cachedUid = await jsonRpc('/jsonrpc', {
+  // Si ya hay una autenticación en curso (otra query la disparó), reusamos
+  // su promesa: una sola petición a Odoo aunque vengan N llamadas en paralelo.
+  if (authPromise) return authPromise;
+  authPromise = jsonRpc('/jsonrpc', {
     service: 'common',
     method: 'authenticate',
     args: [db, usr, key, {}],
+  }).then(uid => {
+    if (!uid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
+    cachedUid = uid;
+    return uid;
+  }).catch(e => {
+    authPromise = null; // permitir reintento en la siguiente request
+    throw e;
   });
-  if (!cachedUid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
-  return cachedUid;
+  return authPromise;
 }
 
 // Envuelve execute_kw — la única llamada que realmente vas a usar.

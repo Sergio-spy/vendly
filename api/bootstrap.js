@@ -7,7 +7,7 @@
 // Si Odoo está caído, devuelve 200 con campos vacíos y un odooAuth='fail' en
 // health, para que el frontend no caiga al estado "Error cargando la API".
 
-import { MOCK_MODE, search_read, pingAuth } from './_lib/odoo.js';
+import { MOCK_MODE, search_read } from './_lib/odoo.js';
 import { CLIENTS, ORDERS, PRODUCTS, PROMOS, TARIFFS } from './_lib/mock.js';
 import { mapOrder, mapPartner, mapPricelist, mapTemplate } from './_lib/mappers.js';
 import { resolveFamilies } from './_lib/families.js';
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     const productCountsDomain = [['sale_ok','=',true]];
 
     const [
-      productRows, clientRows, tariffRows, orderRows, productCountRows, odooAuth,
+      productRows, clientRows, tariffRows, orderRows, productCountRows,
     ] = await Promise.all([
       search_read('product.template', productDomain, [
         'name','default_code','barcode','list_price','qty_available','categ_id',
@@ -79,8 +79,9 @@ export default async function handler(req, res) {
         ['name','partner_id','date_order','amount_total','state','order_line'],
         { limit: 200, order: 'date_order desc' }),
       search_read('product.product', productCountsDomain, ['categ_id'], { limit: 5000 }),
-      pingAuth().catch(() => false),
     ]);
+    // Si las queries arriba funcionaron, la auth a Odoo está OK.
+    const odooAuth = true;
 
     // Conteo por categoría.
     const counts = new Map();
