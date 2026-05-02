@@ -1,43 +1,44 @@
 // GET /api/order-invoice?orderId=ODOO_ID
-// Devuelve el PDF de la(s) factura(s) asociada(s) al pedido. Si todavía no hay
-// factura emitida en Odoo, responde 404.
+// Devuelve el PDF de la factura asociada al pedido.
 //
-// Implementación: como Odoo bloquea ir.actions.report._render_qweb_pdf por
-// JSON-RPC ("Private methods cannot be called remotely"), usamos el flujo HTTP
-// estándar: 1) /web/session/authenticate con API key → cookie de sesión, 2)
-// GET /report/pdf/<report>/<ids> con esa cookie → bytes del PDF.
+// Implementación: en lugar de invocar el render de Odoo (privado o que requiere
+// sesión web con password real), leemos el PDF que Odoo adjunta automáticamente
+// al postear la factura (account.move.message_main_attachment_id).
+// Si no existe ese adjunto, fallback a buscar cualquier ir.attachment de
+// mimetype application/pdf vinculado al move. Si tampoco hay nada, 404.
 
-import { MOCK_MODE, search_read } from './_lib/odoo.js';
+import { MOCK_MODE, search_read, call } from './_lib/odoo.js';
 import { requireComercial } from './_lib/auth.js';
 
-const REPORT_XMLID = 'account.account_invoices'; // template estándar de factura
+async function fetchInvoicePdf(invoiceId) {
+  const inv = await search_read('account.move', [['id','=', invoiceId]],
+    ['name','message_main_attachment_id'], { limit: 1 });
+  if (!inv.length) return null;
 
-const ODOO_URL = process.env.ODOO_URL;
-const ODOO_DB  = process.env.ODOO_DB;
-const ODOO_USER = process.env.ODOO_USER;
-const ODOO_API_KEY = process.env.ODOO_API_KEY;
+  let attId   = inv[0].message_main_attachment_id?.[0] || null;
+  let attName = (inv[0].name || `Factura-${invoiceId}`).replace('/', '-') + '.pdf';
 
-async function odooLogin() {
-  const r = await fetch(`${ODOO_URL}/web/session/authenticate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      params: { db: ODOO_DB, login: ODOO_USER, password: ODOO_API_KEY },
-    }),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (j.error) throw new Error(j.error.data?.message || j.error.message || 'Login fallido');
-  if (!j.result?.uid) throw new Error('Sesión Odoo sin uid');
-  // Concatenar todas las cookies que Odoo nos devuelva.
-  const setCookie = r.headers.get('set-cookie') || '';
-  const cookieHeader = setCookie
-    .split(/,(?=\s*[A-Za-z0-9_-]+=)/) // coma seguida de nombre de cookie
-    .map(c => c.split(';')[0].trim())
-    .filter(Boolean)
-    .join('; ');
-  if (!cookieHeader) throw new Error('Odoo no devolvió cookie de sesión');
-  return cookieHeader;
+  if (!attId) {
+    const atts = await search_read('ir.attachment',
+      [
+        ['res_model','=','account.move'],
+        ['res_id','=', invoiceId],
+        ['mimetype','=','application/pdf'],
+      ],
+      ['id','name'],
+      { limit: 1, order: 'id desc' });
+    if (!atts.length) return null;
+    attId   = atts[0].id;
+    attName = atts[0].name || attName;
+  }
+
+  const data = await call('ir.attachment', 'read', [[attId], ['datas','mimetype','name']]);
+  if (!data.length || !data[0].datas) return null;
+  return {
+    buf:  Buffer.from(data[0].datas, 'base64'),
+    name: data[0].name || attName,
+    mime: data[0].mimetype || 'application/pdf',
+  };
 }
 
 export default async function handler(req, res) {
@@ -54,26 +55,23 @@ export default async function handler(req, res) {
     const invoiceIds = orders[0].invoice_ids || [];
     if (!invoiceIds.length) return res.status(404).json({ error: 'Sin factura emitida' });
 
-    const cookie = await odooLogin();
-    const ids = invoiceIds.join(',');
-    const reportUrl = `${ODOO_URL}/report/pdf/${REPORT_XMLID}/${ids}`;
-    const pdfRes = await fetch(reportUrl, { headers: { Cookie: cookie } });
-    if (!pdfRes.ok) {
-      const text = await pdfRes.text().catch(() => '');
-      return res.status(502).json({ error: `Odoo ${pdfRes.status}: ${text.slice(0, 180)}` });
+    // Probar las facturas en orden hasta encontrar una con PDF adjunto.
+    let pdf = null;
+    for (const id of invoiceIds) {
+      pdf = await fetchInvoicePdf(id);
+      if (pdf) break;
     }
-    const ct = pdfRes.headers.get('content-type') || '';
-    const buf = Buffer.from(await pdfRes.arrayBuffer());
-    if (!ct.includes('pdf') || buf.length < 100) {
-      return res.status(502).json({ error: 'Respuesta no es PDF' });
+    if (!pdf) {
+      return res.status(404).json({
+        error: 'PDF no disponible. Abre la factura en Odoo y pulsa "Imprimir" para generarlo.',
+      });
     }
 
-    const filename = `Factura-${orders[0].name || orderId}.pdf`;
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    res.setHeader('Content-Length', String(buf.length));
+    res.setHeader('Content-Type', pdf.mime);
+    res.setHeader('Content-Disposition', `inline; filename="${pdf.name}"`);
+    res.setHeader('Content-Length', String(pdf.buf.length));
     res.setHeader('Cache-Control', 'private, max-age=300');
-    res.status(200).end(buf);
+    res.status(200).end(pdf.buf);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
