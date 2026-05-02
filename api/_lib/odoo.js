@@ -20,33 +20,39 @@ let cachedUid = null;
 let authPromise = null; // promesa compartida de authenticate() para queries concurrentes
 
 async function jsonRpc(path, params) {
-  const r = await fetch(`${url}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params }),
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.data?.message || j.error.message || 'Odoo error');
-  return j.result;
-}
-
-// Reintenta hasta 3 veces (con backoff) si Odoo responde con HTML / error de
-// red. Cubre el rate-limit transitorio de Odoo SaaS en cold-starts.
-async function tryAuthenticate() {
+  // Reintenta hasta 3 veces (0/500/1500ms backoff) si Odoo responde con HTML
+  // (rate-limit, 502, mantenimiento) o si la red rebota. Una vez la respuesta
+  // es JSON válido, dejamos de reintentar y devolvemos el resultado / error.
   const delays = [0, 500, 1500];
   let lastErr = null;
   for (const d of delays) {
     if (d) await new Promise(r => setTimeout(r, d));
     try {
-      const uid = await jsonRpc('/jsonrpc', {
-        service: 'common',
-        method: 'authenticate',
-        args: [db, usr, key, {}],
+      const r = await fetch(`${url}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params }),
       });
-      if (!uid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
-      return uid;
+      const text = await r.text();
+      let j;
+      try {
+        j = JSON.parse(text);
+      } catch {
+        // Cuerpo no-JSON (HTML, vacío, etc.) → probablemente rate-limit transitorio.
+        throw new Error(`Odoo respondió no-JSON (HTTP ${r.status}); reintentando…`);
+      }
+      if (j.error) {
+        // Error JSON-RPC bien formado: NO reintentamos, es un error de aplicación.
+        throw new Error(j.error.data?.message || j.error.message || 'Odoo error');
+      }
+      return j.result;
     } catch (e) {
       lastErr = e;
+      // Si es un error JSON-RPC formal, no reintentar.
+      if (/^Odoo respondió no-JSON/.test(e.message) === false &&
+          /Odoo error|fetch failed|network/i.test(e.message) === false) {
+        throw e;
+      }
     }
   }
   throw lastErr;
@@ -56,8 +62,14 @@ async function authenticate() {
   if (cachedUid) return cachedUid;
   // Si ya hay una autenticación en curso (otra query la disparó), reusamos
   // su promesa: una sola petición a Odoo aunque vengan N llamadas en paralelo.
+  // El retry contra HTML / rate-limit lo gestiona jsonRpc internamente.
   if (authPromise) return authPromise;
-  authPromise = tryAuthenticate().then(uid => {
+  authPromise = jsonRpc('/jsonrpc', {
+    service: 'common',
+    method: 'authenticate',
+    args: [db, usr, key, {}],
+  }).then(uid => {
+    if (!uid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
     cachedUid = uid;
     return uid;
   }).catch(e => {
