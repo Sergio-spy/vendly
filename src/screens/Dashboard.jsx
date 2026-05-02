@@ -23,6 +23,10 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
   const monthClients  = new Set(monthOrders.map(o => o.client).filter(Boolean)).size;
   const monthlyGoal   = myGoal?.monthly || 0;
   const goalPct = monthlyGoal ? Math.min(100, Math.round(monthRevenue / monthlyGoal * 100)) : 0;
+
+  // Cobros pendientes reales (sin asientos de apertura, ya filtrados en backend).
+  const pendingClients = clients.filter(c => (c.balance || 0) > 0);
+  const pendingCollections = pendingClients.reduce((a, c) => a + c.balance, 0);
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 24 }}>
       <div>
@@ -65,8 +69,8 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
 
         <div className="card" style={{ padding: 22 }}>
           <div className="t-h3 muted" style={{ marginBottom: 10 }}>Cobros pendientes</div>
-          <div className="tabular" style={{ fontSize: 32, fontWeight: 700, color:'var(--warn)' }}>{eur(KPI.pendingCollections)}</div>
-          <div className="t-small" style={{ marginTop: 12 }}>2 clientes con saldo &gt; 30 días</div>
+          <div className="tabular" style={{ fontSize: 32, fontWeight: 700, color:'var(--warn)' }}>{eur(pendingCollections)}</div>
+          <div className="t-small" style={{ marginTop: 12 }}>{pendingClients.length} cliente{pendingClients.length === 1 ? '' : 's'} con saldo</div>
           <button className="btn btn-secondary btn-sm" style={{ marginTop: 12, width:'100%' }} onClick={()=>setRoute('collect')}>Gestionar cobros</button>
         </div>
       </div>
