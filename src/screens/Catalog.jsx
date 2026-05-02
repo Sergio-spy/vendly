@@ -13,6 +13,14 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
   const selected = familyByKey.get(familyKey);
   const selectedIds = selected?.descendantIds;
 
+  // Conteo real en el rail desde el dataset que sí se muestra (ya filtrado por
+  // "agujero" en palos aluminio, etc.). Solo en hojas; los nodos padre no
+  // muestran contador porque sería la suma de hijos y entorpece la lectura.
+  const productsByCategId = new Map();
+  for (const p of products) {
+    productsByCategId.set(p.family, (productsByCategId.get(p.family) || 0) + 1);
+  }
+
   const tariff = client?.tariff || 'T2';
   let prods = products.filter(p => {
     if (familyKey === 'all') return true;
@@ -49,17 +57,20 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
             <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0 }}>Todas</span>
             <span className="badge">{products.length}</span>
           </button>
-          {families.map(f => (
-            <button key={f.key}
-              onClick={()=>setFamilyKey(f.key)}
-              className="sb-item"
-              data-active={String(familyKey===f.key)}
-              title={f.name}
-              style={{ paddingLeft: 12 + f.depth * 10, alignItems:'flex-start' }}>
-              <span style={{ flex:1, minWidth:0, fontWeight: f.hasChildren ? 600 : 500, whiteSpace:'normal', wordBreak:'break-word', lineHeight: 1.3, textAlign:'left' }}>{f.name}</span>
-              <span className="badge" style={{ flexShrink: 0 }}>{f.count}</span>
-            </button>
-          ))}
+          {families.map(f => {
+            const leafCount = !f.hasChildren ? (productsByCategId.get(f.odooId) || 0) : null;
+            return (
+              <button key={f.key}
+                onClick={()=>setFamilyKey(f.key)}
+                className="sb-item"
+                data-active={String(familyKey===f.key)}
+                title={f.name}
+                style={{ paddingLeft: 12 + f.depth * 10, alignItems:'flex-start' }}>
+                <span style={{ flex:1, minWidth:0, fontWeight: f.hasChildren ? 600 : 500, whiteSpace:'normal', wordBreak:'break-word', lineHeight: 1.3, textAlign:'left' }}>{f.name}</span>
+                {leafCount != null && <span className="badge" style={{ flexShrink: 0 }}>{leafCount}</span>}
+              </button>
+            );
+          })}
         </div>
         <div className="divider"/>
         <div className="t-tiny" style={{ marginBottom: 10 }}>Filtros rápidos</div>

@@ -29,8 +29,8 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
         <div className="t-display">Panel de hoy</div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap: 16 }}>
-        <div className="card" style={{ padding: 22 }}>
+      <div className="dash-row">
+        <div className="card dash-card-wide" style={{ padding: 22 }}>
           <div className="hstack" style={{ justifyContent:'space-between', marginBottom: 14 }}>
             <div className="t-h3 muted">Venta del mes</div>
             <span className="tag tag-success">+12% vs mes anterior</span>
@@ -66,7 +66,7 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
         </div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16 }}>
+      <div className="dash-row-2">
         <div className="card" style={{ padding: 0 }}>
           <div className="hstack" style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)' }}>
             <div className="t-h2">Últimos pedidos</div>

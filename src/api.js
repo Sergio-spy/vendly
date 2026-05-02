@@ -70,10 +70,21 @@ export const api = {
   // Variantes de un product.template
   variants: (templateId) => req(`/product-variants?templateId=${encodeURIComponent(templateId)}`),
 
+  // KPI: range = 'day' | 'month'
+  kpi: (range = 'day') => req(`/kpi?range=${encodeURIComponent(range)}`),
+
+  // Comparador de tarifas
+  comparePricelists: (payload) => req('/pricelist-compare', { method:'POST', body: JSON.stringify(payload) }),
+
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),
   updateOrder:  (id, payload) => req(`/order?id=${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify(payload) }),
   createClient: (payload) => req('/clients', { method:'POST', body: JSON.stringify(payload) }),
   updateClient: (payload) => req('/clients', { method:'PUT',  body: JSON.stringify(payload) }),
   assignTariff: (payload) => req('/assign-tariff', { method:'POST', body: JSON.stringify(payload) }),
+
+  // Promos (admin)
+  createPromo:  (payload) => req('/promos', { method:'POST', body: JSON.stringify(payload) }),
+  updatePromo:  (payload) => req('/promos', { method:'PUT',  body: JSON.stringify(payload) }),
+  deletePromo:  (odooId)  => req(`/promos?odooId=${encodeURIComponent(odooId)}`, { method:'DELETE' }),
 };

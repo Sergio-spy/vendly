@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Icon, ProdGlyph } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { ClientForm } from './ClientForm';
 import { TariffAssignModal } from './TariffAssignModal';
 import { eur } from '../lib/format';
-import { orderInvoiceUrl } from '../api';
+import { orderInvoiceUrl, api } from '../api';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -159,8 +159,9 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh })
 export function TariffsScreen({ tariffs = [], products = [], clients = [], onClientsRefresh }) {
   const [assignTariff, setAssignTariff] = useState(null);
   // Recalcular cuántos clientes tiene cada tarifa a partir de la lista real.
+  // Matching por odooId (más fiable que por nombre, que difiere en "(EUR)").
   const counts = clients.reduce((acc, c) => {
-    if (c.tariff) acc[c.tariff] = (acc[c.tariff] || 0) + 1;
+    if (c.tariffOdooId) acc[c.tariffOdooId] = (acc[c.tariffOdooId] || 0) + 1;
     return acc;
   }, {});
   return (
@@ -178,7 +179,7 @@ export function TariffsScreen({ tariffs = [], products = [], clients = [], onCli
             </div>
             <div>
               <div className="t-tiny">CLIENTES</div>
-              <div className="tabular bold" style={{ fontSize: 20 }}>{counts[t.name] ?? t.clients}</div>
+              <div className="tabular bold" style={{ fontSize: 20 }}>{counts[t.odooId] ?? t.clients}</div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={()=>setAssignTariff(t)} disabled={!t.odooId}>Asignar a clientes</button>
           </div>
@@ -191,23 +192,137 @@ export function TariffsScreen({ tariffs = [], products = [], clients = [], onCli
         onClose={()=>setAssignTariff(null)}
         onSaved={()=>{ onClientsRefresh?.(); }}
       />
-      <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}><div className="t-h2">Comparador de precios</div></div>
+      <PricelistComparator products={products} tariffs={tariffs}/>
+    </div>
+  );
+}
+
+function PricelistComparator({ products = [], tariffs = [] }) {
+  const [picked, setPicked] = React.useState([]); // array de templateIds (number)
+  const [q, setQ] = React.useState('');
+  const [matrix, setMatrix] = React.useState({ products: [], prices: {} });
+  const [loading, setLoading] = React.useState(false);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+
+  const reload = React.useCallback(async (templateIds) => {
+    if (!templateIds.length || !tariffs.length) {
+      setMatrix({ products: [], prices: {} });
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await api.comparePricelists({
+        templateIds,
+        pricelistIds: tariffs.map(t => t.odooId).filter(Boolean),
+      });
+      setMatrix(data);
+    } catch {
+      setMatrix({ products: [], prices: {} });
+    } finally { setLoading(false); }
+  }, [tariffs]);
+
+  React.useEffect(() => { reload(picked); }, [picked, reload]);
+
+  const togglePick = (templateId) => {
+    setPicked(prev => prev.includes(templateId) ? prev.filter(x=>x!==templateId) : [...prev, templateId]);
+  };
+
+  const filtProds = q
+    ? products.filter(p => (p.name + (p.sku||'')).toLowerCase().includes(q.toLowerCase()))
+    : products.slice(0, 30);
+
+  return (
+    <div className="card" style={{ padding: 0 }}>
+      <div className="hstack" style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+        <div className="t-h2">Comparador de precios</div>
+        <div className="spacer"/>
+        <button className="btn btn-secondary btn-sm" onClick={()=>setPickerOpen(true)}>
+          <Icon name="plus" size={14}/> Elegir artículos
+        </button>
+      </div>
+      {picked.length === 0 ? (
+        <div className="empty">
+          <div className="empty-ic"><Icon name="catalog" size={24}/></div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin artículos seleccionados</div>
+          <div className="t-small">Pulsa "Elegir artículos" para añadir y comparar precios entre tarifas.</div>
+        </div>
+      ) : (
         <table className="tbl">
-          <thead><tr><th>Artículo</th><th className="num">PVP</th><th className="num">T1 −8%</th><th className="num">T2 base</th><th className="num">T3 +6%</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th className="num">PVP</th>
+              {tariffs.map(t => <th key={t.id} className="num">{t.name}</th>)}
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
-            {products.slice(0,8).map(p => (
-              <tr key={p.id}>
+            {matrix.products.map(p => (
+              <tr key={p.templateId}>
                 <td><div className="bold">{p.name}</div><div className="t-small">{p.sku}</div></td>
                 <td className="num tabular muted">{eur(p.pvp)}</td>
-                <td className="num tabular bold" style={{ color:'var(--brand-700)' }}>{eur(p.pvp*0.92)}</td>
-                <td className="num tabular bold">{eur(p.pvp)}</td>
-                <td className="num tabular bold" style={{ color:'var(--warn)' }}>{eur(p.pvp*1.06)}</td>
+                {tariffs.map(t => {
+                  const price = matrix.prices?.[p.templateId]?.[t.odooId];
+                  return <td key={t.id} className="num tabular bold">{price != null ? eur(price) : '—'}</td>;
+                })}
+                <td>
+                  <button className="btn btn-ghost btn-sm" title="Quitar" onClick={()=>togglePick(p.templateId)}>
+                    <Icon name="x" size={14}/>
+                  </button>
+                </td>
               </tr>
             ))}
+            {loading && (
+              <tr><td colSpan={tariffs.length + 3} className="muted t-small" style={{ textAlign:'center', padding:'12px 22px' }}>Cargando precios…</td></tr>
+            )}
           </tbody>
         </table>
-      </div>
+      )}
+
+      {pickerOpen && (
+        <>
+          <div className="scrim" onClick={()=>setPickerOpen(false)}/>
+          <div className="modal" style={{ width: 600, maxHeight:'80vh' }}>
+            <div className="hstack" style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+              <div className="t-h2">Artículos a comparar</div>
+              <div className="spacer"/>
+              <span className="t-small muted">{picked.length} seleccionado{picked.length === 1 ? '' : 's'}</span>
+              <button className="btn btn-ghost btn-icon" onClick={()=>setPickerOpen(false)}><Icon name="x"/></button>
+            </div>
+            <div style={{ padding:'14px 22px 0' }}>
+              <div className="input-wrap">
+                <Icon name="search" size={16} className="lead" style={{ position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color:'var(--ink-4)' }}/>
+                <input className="input input-search" placeholder="Buscar por nombre o SKU…" value={q} onChange={e=>setQ(e.target.value)}/>
+              </div>
+            </div>
+            <div style={{ padding:'10px 22px', overflowY:'auto', maxHeight: '50vh' }}>
+              <div className="vstack" style={{ gap: 4 }}>
+                {filtProds.map(p => {
+                  const checked = picked.includes(p.templateId);
+                  return (
+                    <label key={p.id} className="hstack" style={{ padding:'8px 10px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', cursor:'pointer', gap: 12, background: checked ? 'var(--brand-50)' : 'var(--surface)' }}>
+                      <input type="checkbox" checked={checked} onChange={()=>togglePick(p.templateId)} style={{ accentColor:'var(--brand-500)' }}/>
+                      <div style={{ flex:1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                        <div className="t-small">{p.sku || '—'}</div>
+                      </div>
+                      <span className="tabular t-small muted">{eur(p.pvp)}</span>
+                    </label>
+                  );
+                })}
+                {filtProds.length === 0 && <div className="muted t-small" style={{ padding: 20, textAlign:'center' }}>Sin resultados</div>}
+              </div>
+            </div>
+            <div className="hstack" style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', background:'var(--surface-2)' }}>
+              <button className="btn btn-secondary" onClick={()=>setPicked([])} disabled={picked.length === 0}>Quitar todos</button>
+              <div className="spacer"/>
+              <button className="btn btn-primary" onClick={()=>setPickerOpen(false)}>
+                <Icon name="check" size={14}/> Listo
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -276,6 +391,7 @@ export function StockScreen({ products = [] }) {
 export function CollectScreen({ clients = [] }) {
   const pend = clients.filter(c => c.balance > 0);
   const total = pend.reduce((a,c)=>a+c.balance,0);
+  const [contactOpen, setContactOpen] = useState(null); // cliente del popover
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="t-display">Cobros pendientes</div>
@@ -304,43 +420,123 @@ export function CollectScreen({ clients = [] }) {
                 <td className="tabular muted">{c.lastOrder}</td>
                 <td className="num tabular bold">{eur(c.balance)}</td>
                 <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
-                <td><button className="btn btn-secondary btn-sm"><Icon name="phone" size={13}/> Llamar</button></td>
+                <td>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>setContactOpen(c)} disabled={!c.phone && !c.email && !c.mobile}>
+                    <Icon name="phone" size={13}/> Contactar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {contactOpen && (
+        <>
+          <div className="scrim" onClick={()=>setContactOpen(null)}/>
+          <div className="modal" style={{ width: 420 }}>
+            <div className="hstack" style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+              <div>
+                <div className="t-tiny">CONTACTAR</div>
+                <div className="t-h2">{contactOpen.name}</div>
+              </div>
+              <div className="spacer"/>
+              <button className="btn btn-ghost btn-icon" onClick={()=>setContactOpen(null)}><Icon name="x"/></button>
+            </div>
+            <div style={{ padding: 22 }} className="vstack">
+              {(contactOpen.phone || contactOpen.mobile) && (
+                <a href={`tel:${(contactOpen.mobile || contactOpen.phone).replace(/\s/g,'')}`}
+                   className="hstack" style={{ padding:'12px 14px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', textDecoration:'none', color:'var(--ink)', gap: 12 }}>
+                  <Icon name="phone" size={18}/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="t-tiny">TELÉFONO</div>
+                    <div className="tabular bold">{contactOpen.mobile || contactOpen.phone}</div>
+                  </div>
+                  <Icon name="chev-right" size={14} style={{ color:'var(--ink-4)' }}/>
+                </a>
+              )}
+              {contactOpen.email && (
+                <a href={`mailto:${contactOpen.email}`}
+                   className="hstack" style={{ padding:'12px 14px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', textDecoration:'none', color:'var(--ink)', gap: 12 }}>
+                  <Icon name="bell" size={18}/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="t-tiny">EMAIL</div>
+                    <div className="bold" style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{contactOpen.email}</div>
+                  </div>
+                  <Icon name="chev-right" size={14} style={{ color:'var(--ink-4)' }}/>
+                </a>
+              )}
+              {!contactOpen.phone && !contactOpen.mobile && !contactOpen.email && (
+                <div className="muted t-small">Sin datos de contacto.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export function KpiScreen({ clients = [], products = [] }) {
-  const goalPct = Math.round(KPI.monthRevenue / KPI.monthGoal * 100);
-  const days = [4.2, 5.1, 3.8, 6.2, 4.9, 7.1, 5.3, 6.8, 4.1, 5.9, 7.4, 6.0, 8.2, 5.5, 6.9, 7.8];
-  const max = Math.max(...days);
+  const [range, setRange] = useState('month');
+  const [data, setData] = useState({ series: [], average: 0, max: 0, topProducts: [] });
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    let cancel = false;
+    setLoading(true);
+    api.kpi(range).then(d => { if (!cancel) setData(d); })
+      .catch(() => { if (!cancel) setData({ series: [], average: 0, max: 0, topProducts: [] }); })
+      .finally(() => { if (!cancel) setLoading(false); });
+    return () => { cancel = true; };
+  }, [range]);
+
+  const totals = data.series.map(s => s.total);
+  const max = data.max || (totals.length ? Math.max(...totals) : 0);
+  const sumPeriod = totals.reduce((a,b)=>a+b, 0);
+  const bestKey = max > 0 ? data.series.find(s => s.total === max)?.label : '—';
+  const labelTitle = range === 'day' ? 'Venta diaria (últimos 16 días)' : 'Venta mensual (últimos 16 meses)';
+  const labelAvg   = range === 'day' ? 'PROMEDIO DÍA' : 'PROMEDIO MES';
+  const labelBest  = range === 'day' ? 'MEJOR DÍA'    : 'MEJOR MES';
+
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="t-display">Mi rendimiento</div>
       <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap: 16 }}>
         <div className="card" style={{ padding: 22 }}>
-          <div className="hstack" style={{ marginBottom: 14 }}>
-            <div className="t-h2">Venta diaria · Abril</div>
+          <div className="hstack" style={{ marginBottom: 14, gap: 10 }}>
+            <div className="t-h2">{labelTitle}</div>
             <div className="spacer"/>
-            <span className="tag tag-success">+12%</span>
+            <div className="hstack" style={{ gap: 6 }}>
+              {[['day','Diaria'],['month','Mensual']].map(([k,l]) => (
+                <button key={k} className="chip chip-brand" data-active={String(range===k)} onClick={()=>setRange(k)}>{l}</button>
+              ))}
+            </div>
           </div>
-          <svg viewBox="0 0 320 100" style={{ width:'100%', height: 180 }}>
-            {days.map((d,i)=>(
-              <rect key={i} x={i*20+4} y={100-(d/max)*90} width={14} height={(d/max)*90}
-                fill={i===days.length-1?'var(--brand-500)':'var(--brand-200)'} rx="2"/>
-            ))}
+          <svg viewBox="0 0 320 100" style={{ width:'100%', height: 180 }} preserveAspectRatio="none">
+            {data.series.map((s,i)=> {
+              const h = max > 0 ? (s.total / max) * 90 : 0;
+              return (
+                <g key={s.key}>
+                  <rect x={i*20+4} y={100-h} width={14} height={h}
+                    fill={i === data.series.length-1 ? 'var(--brand-500)' : 'var(--brand-200)'} rx="2"/>
+                </g>
+              );
+            })}
           </svg>
-          <div className="hstack" style={{ marginTop: 14 }}>
-            <div><div className="t-tiny">PROMEDIO DÍA</div><div className="tabular bold" style={{ fontSize: 20 }}>{(KPI.monthRevenue/16).toFixed(0)} €</div></div>
-            <div className="divider-v" style={{ height: 32, margin:'0 20px' }}/>
-            <div><div className="t-tiny">MEJOR DÍA</div><div className="tabular bold" style={{ fontSize: 20 }}>{(max*1000).toFixed(0)} €</div></div>
-            <div className="divider-v" style={{ height: 32, margin:'0 20px' }}/>
-            <div><div className="t-tiny">OBJETIVO</div><div className="tabular bold" style={{ fontSize: 20, color:'var(--brand-600)' }}>{goalPct}%</div></div>
+          <div className="hstack" style={{ marginTop: 4, gap: 6, fontSize: 10, color: 'var(--ink-4)' }}>
+            {data.series.map(s => (
+              <div key={s.key} style={{ flex: 1, textAlign:'center', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.label}</div>
+            ))}
           </div>
+          <div className="hstack" style={{ marginTop: 14, flexWrap:'wrap', gap: 10 }}>
+            <div><div className="t-tiny">{labelAvg}</div><div className="tabular bold" style={{ fontSize: 20 }}>{eur(data.average)}</div></div>
+            <div className="divider-v" style={{ height: 32, margin:'0 12px' }}/>
+            <div><div className="t-tiny">{labelBest}</div><div className="tabular bold" style={{ fontSize: 20 }}>{eur(max)}</div><div className="t-small">{bestKey}</div></div>
+            <div className="divider-v" style={{ height: 32, margin:'0 12px' }}/>
+            <div><div className="t-tiny">TOTAL PERIODO</div><div className="tabular bold" style={{ fontSize: 20, color:'var(--brand-600)' }}>{eur(sumPeriod)}</div></div>
+          </div>
+          {loading && <div className="t-small muted" style={{ marginTop: 8 }}>Cargando…</div>}
         </div>
         <div className="card" style={{ padding: 22 }}>
           <div className="t-h2" style={{ marginBottom: 14 }}>Top clientes</div>
@@ -358,19 +554,32 @@ export function KpiScreen({ clients = [], products = [] }) {
           </div>
         </div>
       </div>
-      <div className="card" style={{ padding: 22 }}>
-        <div className="t-h2" style={{ marginBottom: 14 }}>Top artículos vendidos</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12 }}>
-          {products.slice(0,4).map(p => (
-            <div key={p.id} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)' }}>
-              <div className="prod-img" style={{ width: 40, height: 40 }}><ProductImage p={p} size={26}/></div>
-              <div style={{ flex:1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
-                <div className="t-small tabular">{Math.round(p.pvp*8)} ud · {(p.pvp*8).toFixed(0)} €</div>
-              </div>
-            </div>
-          ))}
+      <div className="card" style={{ padding: 0 }}>
+        <div className="hstack" style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)' }}>
+          <div className="t-h2">Top artículos vendidos</div>
+          <div className="spacer"/>
+          <span className="t-small muted">{range === 'day' ? 'últimos 30 días' : 'últimos 12 meses'}</span>
         </div>
+        <table className="tbl">
+          <thead>
+            <tr><th>#</th><th>Artículo</th><th className="num">Unidades</th><th className="num">Importe</th></tr>
+          </thead>
+          <tbody>
+            {data.topProducts.map((p, i) => (
+              <tr key={p.id}>
+                <td className="muted tabular">{i+1}</td>
+                <td className="bold">{p.name}</td>
+                <td className="num tabular">{p.qty}</td>
+                <td className="num tabular bold">{eur(p.total)}</td>
+              </tr>
+            ))}
+            {data.topProducts.length === 0 && (
+              <tr><td colSpan={4} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>
+                {loading ? 'Cargando…' : 'Sin pedidos en el periodo'}
+              </td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -62,14 +62,14 @@ export default async function handler(req, res) {
     const productCountsDomain = [['sale_ok','=',true]];
 
     const [
-      productRows, clientRows, tariffRows, orderRows, productCountRows,
+      productRows, clientRows, tariffRows, orderRows, productCountRows, promoRowsRaw,
     ] = await Promise.all([
       search_read('product.template', productDomain, [
         'name','default_code','barcode','list_price','qty_available','categ_id',
         'product_variant_count','product_variant_ids',
       ], { limit: 1000 }),
       search_read('res.partner', clientDomain, [
-        'name','ref','vat','city','street','street2','phone',
+        'name','ref','vat','city','street','street2','phone','mobile','email',
         'credit','credit_limit','total_invoiced',
         'property_product_pricelist','property_payment_term_id',
       ], { limit: 1000 }),
@@ -79,6 +79,10 @@ export default async function handler(req, res) {
         ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids'],
         { limit: 200, order: 'date_order desc' }),
       search_read('product.product', productCountsDomain, ['categ_id'], { limit: 5000 }),
+      // loyalty.program — solo activos para el listado público.
+      search_read('loyalty.program', [['active','=', true]],
+        ['name','program_type','date_from','date_to','reward_ids','rule_ids','coupon_count'],
+        { limit: 200 }).catch(() => []),
     ]);
     // Si las queries arriba funcionaron, la auth a Odoo está OK.
     const odooAuth = true;
@@ -132,7 +136,17 @@ export default async function handler(req, res) {
 
     const tariffs = tariffRows.map(mapPricelist);
     const orders  = orderRows.map(mapOrder);
-    const promos  = PROMOS; // hasta que se lea de loyalty.program
+    const promos  = (promoRowsRaw || []).map(p => ({
+      id:        `P${p.id}`,
+      odooId:    p.id,
+      title:     p.name || '',
+      kind:      p.program_type || '',
+      end:       (p.date_to   || '').slice(0,10),
+      start:     (p.date_from || '').slice(0,10),
+      stock:     p.coupon_count || 0,
+      sku:       null,
+      active:    true,
+    }));
 
     res.status(200).json({
       health: {

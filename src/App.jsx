@@ -10,6 +10,7 @@ import { OrderDrawer } from './screens/OrderDrawer';
 import { ProductModal } from './screens/ProductModal';
 import { OrderDetailModal } from './screens/OrderDetailModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
+import { PromosAdmin } from './screens/PromosAdmin';
 import { api, auth } from './api';
 
 function buildTariffMult(tariffs) {
@@ -138,7 +139,7 @@ export default function App() {
   const titles = {
     dashboard:'Inicio', catalog:'Catálogo', orders:'Pedidos', clients:'Clientes',
     tariffs:'Tarifas', promos:'Promociones', stock:'Stock', collect:'Cobros',
-    kpi:'Mi rendimiento', admin:'Administración'
+    kpi:'Mi rendimiento', admin:'Administración', 'admin-promos':'Promociones (admin)'
   };
 
   const onConfirm = async () => {
@@ -247,6 +248,7 @@ export default function App() {
           {route==='collect'   && <CollectScreen clients={clients}/>}
           {route==='kpi'       && <KpiScreen clients={clients} products={products}/>}
           {route==='admin'     && <AdminScreen mode={mode}/>}
+          {route==='admin-promos' && <PromosAdmin onRefresh={async()=>{ const fresh = await api.promos(); setPromos(fresh); }}/>}
         </div>
       </div>
 
