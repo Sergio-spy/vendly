@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Vendly · Preview gráficas comerciales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f8f6; --surface:#fff; --surface-2:#f3f4f1; --surface-3:#ebede8;
+  --border:#e2e5df; --border-2:#d4d8d0;
+  --ink:#14181a; --ink-2:#2c3236; --ink-3:#5a6469; --ink-4:#8a9398; --ink-5:#b6bcbe;
+  --brand-50:#effaf3; --brand-100:#d8f1e0; --brand-200:#b2e3c4; --brand-300:#82d0a3;
+  --brand-400:#4eb87f; --brand-500:#2a9d63; --brand-600:#1d7f50; --brand-700:#186641;
+  --warn:#c97a17; --warn-bg:#fdf3e2; --danger:#d64545; --danger-bg:#fdecec;
+  --info:#2473c5; --info-bg:#e9f2fc;
+  --r-2:10px; --r-3:14px;
+  --font-sans:"Inter Tight",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:var(--font-sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+.head{margin-bottom:28px}
+.head h1{margin:0 0 6px;font-size:26px;font-weight:600;letter-spacing:-0.02em}
+.head p{margin:0;color:var(--ink-3);font-size:14px}
+.section{margin-top:36px;padding:22px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.section-hd{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.section-hd .lab{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--brand-500);color:white;font-weight:700;font-size:14px}
+.section-hd h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-0.01em}
+.section-hd .desc{color:var(--ink-3);font-size:13px;margin-left:auto}
+
+.tabular{font-variant-numeric:tabular-nums}
+.t-tiny{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-4)}
+.muted{color:var(--ink-3)}
+.muted-2{color:var(--ink-4)}
+.t-small{font-size:12.5px;color:var(--ink-3)}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.tag-success{background:var(--brand-100);color:var(--brand-700)}
+.tag-warn{background:var(--warn-bg);color:var(--warn)}
+.tag-info{background:var(--info-bg);color:var(--info)}
+
+/* ============== A · BAR CHART POR COMERCIAL ============== */
+.optA{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cardA{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.cardA .head-co{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.cardA .avatar{width:36px;height:36px;border-radius:999px;background:var(--brand-100);color:var(--brand-700);display:grid;place-items:center;font-weight:700;font-size:14px}
+.cardA .name{font-size:15px;font-weight:600}
+.cardA .pct{font-size:13px;font-weight:600;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--brand-50);color:var(--brand-700)}
+.cardA .chart{position:relative;height:160px;margin:14px 0 8px}
+.cardA .x-axis{display:grid;grid-template-columns:repeat(12,1fr);gap:0;font-size:9.5px;color:var(--ink-4);text-align:center}
+.cardA .footer{display:flex;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px}
+.cardA .footer .lbl{color:var(--ink-4);font-size:10.5px;letter-spacing:0.04em;text-transform:uppercase}
+.cardA .footer .val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ============== B · BARRA HORIZONTAL POR COMERCIAL ============== */
+.optB-row{padding:18px 0;border-bottom:1px solid var(--border)}
+.optB-row:last-child{border-bottom:none}
+.optB-row .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.optB-row .name{font-size:15px;font-weight:600;flex:1}
+.optB-row .stat{font-size:13px}
+.optB-row .stat b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.optB-row .stat .sep{color:var(--ink-5);margin:0 6px}
+.optB-row .bar-wrap{position:relative;height:34px;background:var(--surface-2);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.optB-row .bar{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg, var(--brand-400), var(--brand-600));border-radius:8px;display:flex;align-items:center;padding:0 12px;color:white;font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}
+.optB-row .goal-marker{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);box-shadow:0 0 0 1px var(--surface)}
+.optB-row .goal-label{position:absolute;top:-18px;font-size:10.5px;font-weight:600;color:var(--ink-2);transform:translateX(-50%);background:var(--surface);padding:0 4px}
+.optB-row .months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;height:28px}
+.optB-row .month{background:var(--surface-2);border-radius:3px;display:flex;align-items:flex-end;overflow:hidden;position:relative}
+.optB-row .month .fill{width:100%;background:var(--brand-300);transition:height .3s}
+.optB-row .month .fill.over{background:var(--warn)}
+.optB-row .month .lbl{position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:9px;color:var(--ink-4)}
+
+/* ============== C · LINEAS COMPARATIVAS UNICA GRÁFICA ============== */
+.optC{padding:8px 4px}
+.optC .legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.optC .legend-item{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
+.optC .legend-swatch{width:14px;height:14px;border-radius:3px}
+.optC .legend-line{width:24px;height:2px;border-top:2px dashed var(--ink-4)}
+.optC .chart-wrap{position:relative;height:300px;background:linear-gradient(180deg,transparent 0%,var(--surface-2) 100%);border-radius:10px;padding:0}
+.optC .grid line{stroke:var(--border);stroke-width:1}
+.optC .grid text{font-size:10px;fill:var(--ink-4)}
+
+/* viewport sim */
+.note{margin:14px 0 0;padding:10px 14px;border:1px dashed var(--border-2);background:var(--surface-2);border-radius:10px;color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>Análisis comerciales · Comparación de gráficas</h1>
+    <p>Datos mock: 2 comerciales con su evolución mensual del año en curso vs objetivos.</p>
+  </div>
+  <div class="note">💡 Cada opción usa los mismos datos: German (objetivo 15.000 €/mes · 180.000 €/año) y Josep (12.000 €/mes · 144.000 €/año), con valores aleatorios pero realistas para los 12 meses.</div>
+
+  <!-- ============== OPCIÓN A ============== -->
+  <section class="section">
+    <div class="section-hd">
+      <span class="lab">A</span>
+      <h2>Bar chart por comercial (1 tarjeta cada uno)</h2>
+      <span class="desc">Línea de objetivo + barras mensuales · estética clásica dashboard</span>
+    </div>
+    <div class="optA" id="optA"></div>
+  </section>
+
+  <!-- ============== OPCIÓN B ============== -->
+  <section class="section">
+    <div class="section-hd">
+      <span class="lab">B</span>
+      <h2>Barra horizontal de progreso anual + minigráfico mensual</h2>
+      <span class="desc">Lectura rápida · ideal para listar muchos comerciales</span>
+    </div>
+    <div id="optB"></div>
+  </section>
+
+  <!-- ============== OPCIÓN C ============== -->
+  <section class="section">
+    <div class="section-hd">
+      <span class="lab">C</span>
+      <h2>Líneas comparativas en una sola gráfica</h2>
+      <span class="desc">Comparación directa entre comerciales · objetivo mensual como línea base</span>
+    </div>
+    <div class="optC" id="optC"></div>
+  </section>
+
+  <div style="margin-top:36px;padding:18px 22px;background:var(--brand-50);border:1px solid var(--brand-100);border-radius:12px;color:var(--brand-700)">
+    <strong>Recordatorio</strong> · Esta página es una maqueta. Cuando elijas una opción la implementaré en la pantalla "Análisis comerciales" usando los datos reales de Odoo.
+  </div>
+</div>
+
+<script>
+const COLORS = ['#2a9d63', '#2473c5', '#c97a17', '#d64545', '#82d0a3', '#1d7f50'];
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const HOY_MES = new Date().getMonth(); // 0..11
+
+// Mock data
+const COMERCIALES_MOCK = [
+  {
+    id: 'german', name: 'German Masip', initials: 'GM',
+    color: COLORS[0],
+    monthlyGoal: 15000,
+    yearlyGoal: 180000,
+    months: [12500, 13800, 16200, 11700, 14900, 0, 0, 0, 0, 0, 0, 0],
+  },
+  {
+    id: 'josep', name: 'Josep Lopez', initials: 'JL',
+    color: COLORS[1],
+    monthlyGoal: 12000,
+    yearlyGoal: 144000,
+    months: [9800, 13100, 11500, 13800, 10200, 0, 0, 0, 0, 0, 0, 0],
+  },
+];
+
+const eur = n => new Intl.NumberFormat('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2, useGrouping:'always'}).format(n||0) + ' €';
+const eurShort = n => {
+  if (n >= 1000) return (n/1000).toFixed(1).replace('.',',') + 'k €';
+  return Math.round(n) + ' €';
+};
+
+// ============== OPCIÓN A ==============
+const optA = document.getElementById('optA');
+COMERCIALES_MOCK.forEach(co => {
+  const ytd = co.months.reduce((a,b)=>a+b,0);
+  const pct = co.yearlyGoal ? Math.round(ytd/co.yearlyGoal*100) : 0;
+  const max = Math.max(co.monthlyGoal * 1.3, ...co.months);
+  const goalY = max ? (1 - co.monthlyGoal/max) * 100 : 100;
+
+  const card = document.createElement('div');
+  card.className = 'cardA';
+  card.innerHTML = `
+    <div class="head-co">
+      <div class="avatar">${co.initials}</div>
+      <div class="name">${co.name}</div>
+      <div class="pct">${pct}% año</div>
+    </div>
+    <div class="chart">
+      <svg viewBox="0 0 320 100" preserveAspectRatio="none" style="width:100%;height:100%">
+        ${co.months.map((v,i)=>{
+          const h = max ? (v/max)*90 : 0;
+          const isOver = v > co.monthlyGoal;
+          const isCurr = i === HOY_MES;
+          const fill = v === 0 ? 'var(--surface-2)' : (isOver ? 'var(--warn)' : (isCurr ? co.color : co.color + '99'));
+          const w = 320 / 12;
+          const x = i * w + 4;
+          return `<rect x="${x}" y="${100-h}" width="${w-8}" height="${h}" fill="${fill}" rx="2"/>`;
+        }).join('')}
+        <line x1="0" x2="320" y1="${goalY}" y2="${goalY}" stroke="${co.color}" stroke-width="1.4" stroke-dasharray="3 3"/>
+        <text x="316" y="${goalY-3}" text-anchor="end" font-size="9" fill="${co.color}" font-weight="700">obj ${eurShort(co.monthlyGoal)}/mes</text>
+      </svg>
+    </div>
+    <div class="x-axis">${MESES.map((m,i)=>`<div style="font-weight:${i===HOY_MES?700:400};color:${i===HOY_MES?'var(--ink-2)':''}">${m}</div>`).join('')}</div>
+    <div class="footer">
+      <div><div class="lbl">YTD</div><div class="val">${eur(ytd)}</div></div>
+      <div style="text-align:right"><div class="lbl">Objetivo año</div><div class="val muted">${eur(co.yearlyGoal)}</div></div>
+    </div>
+  `;
+  optA.appendChild(card);
+});
+
+// ============== OPCIÓN B ==============
+const optB = document.getElementById('optB');
+COMERCIALES_MOCK.forEach(co => {
+  const ytd = co.months.reduce((a,b)=>a+b,0);
+  const pct = co.yearlyGoal ? (ytd/co.yearlyGoal) : 0;
+  const pctClamp = Math.min(pct, 1);
+  const expectedThisDate = co.yearlyGoal * (HOY_MES + 1) / 12;
+  const goalDate = expectedThisDate / co.yearlyGoal; // marker position 0..1
+
+  const monthMax = Math.max(co.monthlyGoal * 1.2, ...co.months);
+
+  const row = document.createElement('div');
+  row.className = 'optB-row';
+  row.innerHTML = `
+    <div class="top">
+      <div class="name">${co.name}</div>
+      <div class="stat">
+        YTD <b>${eur(ytd)}</b><span class="sep">/</span><span class="muted">${eur(co.yearlyGoal)}</span>
+        <span class="tag ${pct >= goalDate ? 'tag-success' : 'tag-warn'}" style="margin-left:10px">${Math.round(pct*100)}%</span>
+      </div>
+    </div>
+    <div class="bar-wrap">
+      <div class="goal-marker" style="left:${goalDate*100}%"></div>
+      <div class="goal-label" style="left:${goalDate*100}%">esperado: ${Math.round(goalDate*100)}%</div>
+      <div class="bar" style="width:${pctClamp*100}%">${pctClamp > 0.18 ? eur(ytd) : ''}</div>
+    </div>
+    <div class="months">
+      ${co.months.map((v,i)=>{
+        const h = monthMax ? (v/monthMax)*100 : 0;
+        const isOver = v >= co.monthlyGoal;
+        return `<div class="month" title="${MESES[i]}: ${eur(v)}">
+          <div class="fill ${isOver?'over':''}" style="height:${h}%;background:${v === 0 ? 'transparent' : (isOver ? 'var(--brand-500)' : co.color + '88')}"></div>
+          <span class="lbl">${MESES[i]}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="height:18px"></div>
+  `;
+  optB.appendChild(row);
+});
+
+// ============== OPCIÓN C ==============
+const optC = document.getElementById('optC');
+const W = 1100, H = 280, PAD_L = 60, PAD_R = 30, PAD_T = 20, PAD_B = 30;
+const innerW = W - PAD_L - PAD_R;
+const innerH = H - PAD_T - PAD_B;
+const allMax = Math.max(...COMERCIALES_MOCK.flatMap(c => [...c.months, c.monthlyGoal * 1.2]));
+const yTicks = 5;
+
+const legend = COMERCIALES_MOCK.map(co =>
+  `<div class="legend-item"><div class="legend-swatch" style="background:${co.color}"></div>${co.name}</div>`
+).join('');
+
+const xPos = i => PAD_L + (i / 11) * innerW;
+const yPos = v => PAD_T + (1 - v/allMax) * innerH;
+
+let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" class="grid">`;
+// horizontal grid lines
+for (let i = 0; i <= yTicks; i++) {
+  const v = (allMax * i) / yTicks;
+  const y = yPos(v);
+  svg += `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${y}" y2="${y}"/>`;
+  svg += `<text x="${PAD_L-8}" y="${y+3}" text-anchor="end">${eurShort(v)}</text>`;
+}
+// vertical month labels
+MESES.forEach((m, i) => {
+  const x = xPos(i);
+  svg += `<text x="${x}" y="${H - PAD_B + 16}" text-anchor="middle" style="font-size:11px;fill:var(--ink-3);font-weight:${i===HOY_MES?700:400}">${m}</text>`;
+});
+// per comercial: line + dots + dashed goal line
+COMERCIALES_MOCK.forEach(co => {
+  const goalY = yPos(co.monthlyGoal);
+  // dashed goal line (lighter)
+  svg += `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${goalY}" y2="${goalY}" stroke="${co.color}" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.6"/>`;
+  // line connecting months (only past+current ones with values)
+  const validPoints = co.months.map((v,i) => v > 0 ? [xPos(i), yPos(v)] : null).filter(Boolean);
+  if (validPoints.length > 1) {
+    const path = validPoints.map(([x,y],i) => `${i===0?'M':'L'}${x},${y}`).join(' ');
+    svg += `<path d="${path}" stroke="${co.color}" stroke-width="2.5" fill="none"/>`;
+  }
+  // dots
+  co.months.forEach((v,i) => {
+    if (v <= 0) return;
+    const x = xPos(i), y = yPos(v);
+    svg += `<circle cx="${x}" cy="${y}" r="5" fill="${co.color}"/>`;
+    svg += `<circle cx="${x}" cy="${y}" r="2.5" fill="white"/>`;
+  });
+});
+svg += `</svg>`;
+
+optC.innerHTML = `
+  <div class="legend">
+    ${legend}
+    <div class="legend-item"><div class="legend-line"></div>Objetivo mensual (cada uno)</div>
+  </div>
+  <div class="chart-wrap">${svg}</div>
+`;
+</script>
+</body>
+</html>

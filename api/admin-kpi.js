@@ -26,6 +26,9 @@ export default async function handler(req, res) {
     const [yy, mm] = ymNow.split('-').map(Number);
     const nextMonth = new Date(Date.UTC(yy, mm, 1)); // mm es 1-based, así que +1 ya implícito
     const monthEnd = nextMonth.toISOString().slice(0, 10);
+    // Para la gráfica anual: rango año entero del mes seleccionado.
+    const yearStart = `${yy}-01-01`;
+    const yearEnd   = `${yy + 1}-01-01`;
 
     const all = await loadComerciales();
     const comercialesActivos = all.filter(c => c.role === 'comercial' && c.odooTagId);
@@ -33,8 +36,8 @@ export default async function handler(req, res) {
 
     if (!tagIds.length) return res.status(200).json({ comerciales: [] });
 
-    // Datos en paralelo: pedidos del mes + clientes (con saldo y tags) + goals.
-    const [orderRows, clientRows, allGoals] = await Promise.all([
+    // Datos en paralelo: pedidos del mes + clientes (con saldo y tags) + goals + pedidos del año entero (gráfica).
+    const [orderRows, clientRows, allGoals, yearOrderRows] = await Promise.all([
       search_read('sale.order',
         [['date_order','>=', monthStart], ['date_order','<', monthEnd], ['partner_id.category_id', 'in', tagIds]],
         ['partner_id','date_order','amount_total','state','invoice_status'],
@@ -44,6 +47,10 @@ export default async function handler(req, res) {
         ['name','category_id','credit'],
         { limit: 5000 }),
       kvGet('goals').catch(() => null),
+      search_read('sale.order',
+        [['date_order','>=', yearStart], ['date_order','<', yearEnd], ['partner_id.category_id', 'in', tagIds]],
+        ['partner_id','date_order','amount_total','state'],
+        { limit: 20000, order: 'date_order asc' }),
     ]);
 
     // Saldo real sin asientos de apertura. Recorremos TODOS los apuntes
@@ -96,6 +103,17 @@ export default async function handler(req, res) {
       ).size;
       const balance = [...myPartnerIds].reduce((a, pid) => a + (balanceMap.get(pid) || 0), 0);
 
+      // Serie mensual del año (12 valores) — para la gráfica.
+      const monthlyYear = Array(12).fill(0);
+      for (const o of yearOrderRows) {
+        const pid = Array.isArray(o.partner_id) ? o.partner_id[0] : o.partner_id;
+        if (!myPartnerIds.has(pid)) continue;
+        if (o.state === 'draft' || o.state === 'cancel') continue;
+        const m = Number((o.date_order || '').slice(5,7)) - 1;
+        if (m >= 0 && m < 12) monthlyYear[m] += (o.amount_total || 0);
+      }
+      const ytd = monthlyYear.reduce((a,b)=>a+b, 0);
+
       return {
         id:            co.id,
         name:          co.name,
@@ -106,10 +124,12 @@ export default async function handler(req, res) {
         activeClients,
         balance,
         goal:          { monthly: goal.monthly || 0, yearly: goal.yearly || 0 },
+        monthlyYear,
+        ytd,
       };
     });
 
-    res.status(200).json({ comerciales: out, month: ymNow });
+    res.status(200).json({ comerciales: out, month: ymNow, year: yy });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
