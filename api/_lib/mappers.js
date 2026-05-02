@@ -102,12 +102,13 @@ export function mapPricelist(r) {
 export function mapOrder(r) {
   const stateMap = { draft:'borrador', sent:'pendiente', sale:'pendiente', done:'exportado', cancel:'borrador' };
   return {
-    id:     r.name,
-    odooId: r.id,
-    client: r.partner_id ? `C${String(r.partner_id[0]).padStart(2,'0')}` : '',
-    date:   (r.date_order || '').slice(0,10),
-    total:  r.amount_total || 0,
-    lines:  r.order_line?.length || 0,
-    status: stateMap[r.state] || 'borrador',
+    id:         r.name,
+    odooId:     r.id,
+    client:     r.partner_id ? `C${String(r.partner_id[0]).padStart(2,'0')}` : '',
+    date:       (r.date_order || '').slice(0,10),
+    total:      r.amount_total || 0,
+    lines:      r.order_line?.length || 0,
+    status:     stateMap[r.state] || 'borrador',
+    invoiceIds: Array.isArray(r.invoice_ids) ? r.invoice_ids : [],
   };
 }

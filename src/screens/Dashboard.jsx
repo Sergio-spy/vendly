@@ -11,8 +11,17 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function Dashboard({ setRoute, salesman, recentOrders, clients = [], promos = [], products = [] }) {
-  const goalPct = Math.round(KPI.monthRevenue / KPI.monthGoal * 100);
+export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [], promos = [], products = [] }) {
+  // Pedidos del mes (mes actual): partimos del listado de pedidos del comercial,
+  // ya filtrado en /api/orders por su odooTagId.
+  const ymNow = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+  const monthOrders   = recentOrders.filter(o => (o.date || '').startsWith(ymNow));
+  const monthRevenue  = monthOrders
+    .filter(o => o.status !== 'borrador')
+    .reduce((a, o) => a + (o.total || 0), 0);
+  const pendingOrders = monthOrders.filter(o => o.status === 'borrador').length;
+  const monthClients  = new Set(monthOrders.map(o => o.client).filter(Boolean)).size;
+  const goalPct = KPI.monthGoal ? Math.min(100, Math.round(monthRevenue / KPI.monthGoal * 100)) : 0;
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 24 }}>
       <div>
@@ -27,7 +36,7 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
             <span className="tag tag-success">+12% vs mes anterior</span>
           </div>
           <div className="hstack" style={{ alignItems:'baseline', gap: 10, marginBottom: 18 }}>
-            <div className="tabular" style={{ fontSize: 38, fontWeight: 700, letterSpacing:'-0.02em' }}>{eur(KPI.monthRevenue)}</div>
+            <div className="tabular" style={{ fontSize: 38, fontWeight: 700, letterSpacing:'-0.02em' }}>{eur(monthRevenue)}</div>
             <div className="muted">de {eur(KPI.monthGoal)} objetivo</div>
           </div>
           <div style={{ height: 8, borderRadius: 999, background:'var(--surface-3)', overflow:'hidden', marginBottom: 8 }}>
@@ -41,11 +50,11 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
 
         <div className="card" style={{ padding: 22 }}>
           <div className="t-h3 muted" style={{ marginBottom: 10 }}>Pedidos del mes</div>
-          <div className="tabular" style={{ fontSize: 32, fontWeight: 700 }}>{KPI.monthOrders}</div>
+          <div className="tabular" style={{ fontSize: 32, fontWeight: 700 }}>{monthOrders.length}</div>
           <div className="hstack" style={{ marginTop: 12, gap: 16 }}>
-            <div><div className="tabular bold">{KPI.pendingOrders}</div><div className="t-small">por exportar</div></div>
+            <div><div className="tabular bold">{pendingOrders}</div><div className="t-small">borradores</div></div>
             <div className="divider-v" style={{ height: 28 }}/>
-            <div><div className="tabular bold">{KPI.monthClients}</div><div className="t-small">clientes activos</div></div>
+            <div><div className="tabular bold">{monthClients}</div><div className="t-small">clientes activos</div></div>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { ProductImage } from '../components/ProductCard';
 import { ClientForm } from './ClientForm';
 import { TariffAssignModal } from './TariffAssignModal';
 import { eur } from '../lib/format';
+import { orderInvoiceUrl } from '../api';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -67,6 +68,14 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
                       <button className="btn btn-ghost btn-sm" title="Editar" onClick={()=>onEdit?.(o)} style={{ marginLeft: 4 }}>
                         <Icon name="edit" size={14}/>
                       </button>
+                    )}
+                    {(o.invoiceIds?.length > 0) && (
+                      <a className="btn btn-ghost btn-sm" title="Descargar factura"
+                         href={orderInvoiceUrl(o.odooId)}
+                         target="_blank" rel="noopener noreferrer"
+                         style={{ marginLeft: 4 }}>
+                        <Icon name="doc" size={14}/>
+                      </a>
                     )}
                   </td>
                 </tr>
@@ -281,7 +290,7 @@ export function CollectScreen({ clients = [] }) {
         </div>
         <div className="card" style={{ padding: 18, flex: 1 }}>
           <div className="t-h3 muted">Vencido &gt; 30d</div>
-          <div className="tabular" style={{ fontSize: 30, fontWeight: 700, color:'var(--danger)' }}>{pend.filter(c=>c.status==='pendiente').reduce((a,c)=>a+c.balance,0).toFixed(2)} €</div>
+          <div className="tabular" style={{ fontSize: 30, fontWeight: 700, color:'var(--danger)' }}>{eur(pend.filter(c=>c.status==='pendiente').reduce((a,c)=>a+c.balance,0))}</div>
         </div>
       </div>
       <div className="card" style={{ padding: 0 }}>

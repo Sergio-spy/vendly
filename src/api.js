@@ -29,6 +29,13 @@ async function req(path, opts = {}) {
   return r.json();
 }
 
+// URL del PDF de la factura para usar en <a href> de descarga.
+export function orderInvoiceUrl(orderOdooId) {
+  if (!orderOdooId) return null;
+  const t = auth.getToken();
+  return `/api/order-invoice?orderId=${orderOdooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
+}
+
 // URL para usar directamente en <img src>. Lleva el token en query.
 // Acepta o bien `odooId` (variante product.product) o `{templateId}` (plantilla).
 export function productImageUrl(odooIdOrParams) {

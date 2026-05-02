@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       search_read('product.pricelist', [['name','=ilike','Comercial%']],
         ['name','currency_id'], { limit: 50 }),
       search_read('sale.order', orderDomain,
-        ['name','partner_id','date_order','amount_total','state','order_line'],
+        ['name','partner_id','date_order','amount_total','state','order_line','invoice_ids'],
         { limit: 200, order: 'date_order desc' }),
       search_read('product.product', productCountsDomain, ['categ_id'], { limit: 5000 }),
     ]);
