@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import { Icon, ProdGlyph } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { ClientForm } from './ClientForm';
@@ -474,6 +474,22 @@ export function StockScreen({ products = [] }) {
 export function CollectScreen({ clients = [], comerciales = [], isAdmin = false }) {
   const [tagFilter, setTagFilter] = useState('all'); // 'all' | odooTagId (number)
   const [contactOpen, setContactOpen] = useState(null);
+  const [expandedId, setExpandedId] = useState(null); // odooId del cliente expandido
+  const [invoicesById, setInvoicesById] = useState({}); // { [odooId]: { loading, lines, error } }
+
+  const toggleExpand = async (c) => {
+    if (!c.odooId) return;
+    if (expandedId === c.odooId) { setExpandedId(null); return; }
+    setExpandedId(c.odooId);
+    if (invoicesById[c.odooId]?.lines) return; // ya cargado
+    setInvoicesById(prev => ({ ...prev, [c.odooId]: { loading: true } }));
+    try {
+      const data = await api.clientInvoices(c.odooId);
+      setInvoicesById(prev => ({ ...prev, [c.odooId]: { lines: data.lines || [], loading: false } }));
+    } catch (e) {
+      setInvoicesById(prev => ({ ...prev, [c.odooId]: { error: e.message, loading: false } }));
+    }
+  };
 
   const pendAll = clients.filter(c => c.balance > 0);
   const pend = (isAdmin && tagFilter !== 'all')
@@ -520,20 +536,72 @@ export function CollectScreen({ clients = [], comerciales = [], isAdmin = false 
               const coName = isAdmin
                 ? (comerciales.find(co => co.odooTagId && (c.tagIds || []).includes(co.odooTagId))?.name || '—')
                 : null;
+              const isExpanded = expandedId === c.odooId;
+              const inv = invoicesById[c.odooId] || {};
+              const colSpan = isAdmin ? 7 : 6;
               return (
-                <tr key={c.id}>
-                  <td><div className="bold">{c.name}</div><div className="t-small">#{c.code} · {c.contact}</div></td>
-                  {isAdmin && <td className="muted">{coName}</td>}
-                  <td className="muted">{c.paymentTerm}</td>
-                  <td className="tabular muted">{c.lastOrder}</td>
-                  <td className="num tabular bold">{eur(c.balance)}</td>
-                  <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
-                  <td>
-                    <button className="btn btn-secondary btn-sm" onClick={()=>setContactOpen(c)} disabled={!c.phone && !c.email && !c.mobile}>
-                      <Icon name="phone" size={13}/> Contactar
-                    </button>
-                  </td>
-                </tr>
+                <Fragment key={c.id}>
+                  <tr style={{ cursor: c.odooId ? 'pointer' : 'default' }} onClick={()=>toggleExpand(c)}>
+                    <td>
+                      <div className="hstack" style={{ gap: 6 }}>
+                        {c.odooId && <Icon name={isExpanded ? 'chev-down' : 'chev-right'} size={14} style={{ color: 'var(--ink-4)' }}/>}
+                        <div>
+                          <div className="bold">{c.name}</div>
+                          <div className="t-small">#{c.code} · {c.contact}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {isAdmin && <td className="muted">{coName}</td>}
+                    <td className="muted">{c.paymentTerm}</td>
+                    <td className="tabular muted">{c.lastOrder}</td>
+                    <td className="num tabular bold">{eur(c.balance)}</td>
+                    <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
+                    <td onClick={e=>e.stopPropagation()}>
+                      <button className="btn btn-secondary btn-sm" onClick={()=>setContactOpen(c)} disabled={!c.phone && !c.email && !c.mobile}>
+                        <Icon name="phone" size={13}/> Contactar
+                      </button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={colSpan} style={{ background:'var(--surface-2)', padding:'12px 22px' }}>
+                        {inv.loading && <div className="t-small muted">Cargando facturas…</div>}
+                        {inv.error   && <div className="t-small" style={{ color:'var(--danger)' }}>Error: {inv.error}</div>}
+                        {inv.lines && inv.lines.length === 0 && <div className="t-small muted">Sin facturas pendientes (puede ser un saldo manual).</div>}
+                        {inv.lines && inv.lines.length > 0 && (
+                          <table className="tbl" style={{ background:'transparent' }}>
+                            <thead>
+                              <tr>
+                                <th>Documento</th>
+                                <th>Fecha</th>
+                                <th>Vencimiento</th>
+                                <th className="num">Importe</th>
+                                <th className="num">Pendiente</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {inv.lines.map(l => (
+                                <tr key={l.moveId}>
+                                  <td className="bold">{l.moveName}{l.ref ? <div className="t-small">{l.ref}</div> : null}</td>
+                                  <td className="tabular muted">{l.date || '—'}</td>
+                                  <td className="tabular muted">{l.dueDate || '—'}</td>
+                                  <td className="num tabular muted">{eur(l.total)}</td>
+                                  <td className="num tabular bold">{eur(l.residual)}</td>
+                                  <td>
+                                    {l.overdueDays > 0
+                                      ? <span className="tag tag-danger">vencido {l.overdueDays}d</span>
+                                      : (l.dueDate ? <span className="tag tag-warn">al día</span> : <span className="tag tag-neutral">sin vto.</span>)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

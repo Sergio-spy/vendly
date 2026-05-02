@@ -76,6 +76,9 @@ export const api = {
   // KPI agregado por comercial (admin); month en formato YYYY-MM
   adminKpi: (month) => req(`/admin-kpi${month ? `?month=${encodeURIComponent(month)}` : ''}`),
 
+  // Desglose de facturas pendientes de un cliente (cobros)
+  clientInvoices: (odooId) => req(`/client-invoices?id=${encodeURIComponent(odooId)}`),
+
   // Comerciales (admin)
   comerciales: () => req('/comerciales'),
   createComercial: (payload) => req('/comerciales', { method:'POST', body: JSON.stringify(payload) }),
