@@ -7,7 +7,7 @@ import { requireComercial } from './_lib/auth.js';
 // Devuelve un artículo (product.template) por línea — las variantes se eligen
 // en el modal del producto, no en el catálogo principal.
 export default async function handler(req, res) {
-  if (!requireComercial(req, res)) return;
+  if (!(await requireComercial(req, res))) return;
   try {
     if (MOCK_MODE) return res.status(200).json(PRODUCTS);
 

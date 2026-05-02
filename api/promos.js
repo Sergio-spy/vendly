@@ -34,7 +34,7 @@ function mapLoyaltyProgram(p) {
 }
 
 export default async function handler(req, res) {
-  const c = requireComercial(req, res);
+  const c = await requireComercial(req, res);
   if (!c) return;
 
   // Solo admin puede crear/editar/borrar.

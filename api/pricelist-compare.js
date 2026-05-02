@@ -8,7 +8,7 @@ import { MOCK_MODE, search_read, call } from './_lib/odoo.js';
 import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!requireComercial(req, res)) return;
+  if (!(await requireComercial(req, res))) return;
   if (req.method !== 'POST') return res.status(405).end();
 
   const templateIds  = (req.body?.templateIds  || []).map(n => parseInt(n,10)).filter(Boolean);

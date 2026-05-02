@@ -3,6 +3,7 @@ import { Icon, ProdGlyph } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { ClientForm } from './ClientForm';
 import { TariffAssignModal } from './TariffAssignModal';
+import { ComercialForm } from './ComercialForm';
 import { eur } from '../lib/format';
 import { orderInvoiceUrl, api } from '../api';
 
@@ -15,7 +16,20 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onView, onEdit }) {
+export function OrdersScreen({ orders = [], clients = [], comerciales = [], onNew, onRefresh, onView, onEdit, isAdmin = false }) {
+  // Map de partnerId → comercial.name para mostrar columna en admin.
+  const tagToComercial = new Map(
+    (comerciales || []).filter(co => co.odooTagId).map(co => [co.odooTagId, co.name])
+  );
+  const clientById = new Map(clients.map(c => [c.id, c]));
+  const orderComercial = (o) => {
+    const cl = clientById.get(o.client);
+    if (!cl) return null;
+    for (const t of (cl.tagIds || [])) {
+      if (tagToComercial.has(t)) return tagToComercial.get(t);
+    }
+    return null;
+  };
   const [filter, setFilter] = useState('all');
   const [busy, setBusy] = useState(false);
   const filt = orders.filter(o => filter==='all' || o.status===filter);
@@ -50,7 +64,11 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
       </div>
       <div className="card" style={{ padding: 0 }}>
         <table className="tbl">
-          <thead><tr><th>Pedido</th><th>Cliente</th><th>Fecha</th><th>Líneas</th><th className="num">Total</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr>
+            <th>Pedido</th><th>Cliente</th>
+            {isAdmin && <th>Comercial</th>}
+            <th>Fecha</th><th>Líneas</th><th className="num">Total</th><th>Estado</th><th></th>
+          </tr></thead>
           <tbody>
             {filt.map(o => {
               const cl = clients.find(c => c.id === o.client);
@@ -59,6 +77,7 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
                 <tr key={o.id} style={{ cursor: onView ? 'pointer' : 'default' }} onClick={()=>onView?.(o)}>
                   <td className="bold">{o.id}</td>
                   <td>{cl?.name}<div className="t-small">#{cl?.code} · {cl?.city}</div></td>
+                  {isAdmin && <td className="muted">{orderComercial(o) || '—'}</td>}
                   <td className="muted tabular">{o.date}</td>
                   <td className="tabular">{o.lines}</td>
                   <td className="num bold tabular">{eur(o.total)}</td>
@@ -167,8 +186,23 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh, i
   );
 }
 
-export function TariffsScreen({ tariffs = [], products = [], clients = [], onClientsRefresh }) {
+export function TariffsScreen({ tariffs = [], products = [], clients = [], onClientsRefresh, onTariffsRefresh, isAdmin = false }) {
   const [assignTariff, setAssignTariff] = useState(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [savingNew, setSavingNew] = useState(false);
+  const [newErr, setNewErr] = useState(null);
+
+  const submitNew = async () => {
+    if (!newName.trim()) { setNewErr('Falta nombre'); return; }
+    setSavingNew(true); setNewErr(null);
+    try {
+      await api.createTariff({ name: newName.trim() });
+      setNewName(''); setNewOpen(false);
+      onTariffsRefresh?.();
+    } catch (e) { setNewErr(e.message); }
+    finally { setSavingNew(false); }
+  };
   // Recalcular cuántos clientes tiene cada tarifa a partir de la lista real.
   // Matching por odooId (más fiable que por nombre, que difiere en "(EUR)").
   const counts = clients.reduce((acc, c) => {
@@ -177,7 +211,45 @@ export function TariffsScreen({ tariffs = [], products = [], clients = [], onCli
   }, {});
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
-      <div className="hstack"><div className="t-display">Tarifas</div><div className="spacer"/><button className="btn btn-primary"><Icon name="plus" size={14}/> Nueva tarifa</button></div>
+      <div className="hstack">
+        <div className="t-display">Tarifas</div>
+        <div className="spacer"/>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={()=>{ setNewName(''); setNewErr(null); setNewOpen(true); }}>
+            <Icon name="plus" size={14}/> Nueva tarifa
+          </button>
+        )}
+      </div>
+
+      {newOpen && (
+        <>
+          <div className="scrim" onClick={()=>setNewOpen(false)}/>
+          <div className="modal" style={{ width: 480 }}>
+            <div className="hstack" style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }}>
+              <div className="t-h2">Nueva tarifa</div>
+              <div className="spacer"/>
+              <button className="btn btn-ghost btn-icon" onClick={()=>setNewOpen(false)}><Icon name="x"/></button>
+            </div>
+            <div style={{ padding: 22 }}>
+              {newErr && <div className="t-small" style={{ color:'var(--danger)', marginBottom: 12 }}>{newErr}</div>}
+              <div className="field">
+                <label>Nombre *</label>
+                <input className="input" value={newName} onChange={e=>setNewName(e.target.value)} autoFocus placeholder="ej. Distribuidores Top"/>
+                <div className="t-small muted" style={{ marginTop: 6 }}>
+                  Se prefijará automáticamente con "Comercial " para que aparezca en la lista.
+                </div>
+              </div>
+            </div>
+            <div className="hstack" style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', background:'var(--surface-2)' }}>
+              <button className="btn btn-secondary" onClick={()=>setNewOpen(false)} disabled={savingNew}>Cancelar</button>
+              <div className="spacer"/>
+              <button className="btn btn-primary" onClick={submitNew} disabled={savingNew}>
+                <Icon name="check" size={14}/> {savingNew ? 'Creando…' : 'Crear tarifa'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       <div className="vstack" style={{ gap: 8 }}>
         {tariffs.map(t => (
           <div key={t.id} className="card" style={{ padding:'14px 18px 14px 22px', borderLeft: `4px solid ${t.color}`, display:'grid', gridTemplateColumns:'minmax(0, 1fr) 120px auto', gap: 18, alignItems:'center' }}>
@@ -438,22 +510,32 @@ export function CollectScreen({ clients = [], comerciales = [], isAdmin = false 
       </div>
       <div className="card" style={{ padding: 0 }}>
         <table className="tbl">
-          <thead><tr><th>Cliente</th><th>Forma de pago</th><th>Últ. pedido</th><th className="num">Saldo</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr>
+            <th>Cliente</th>
+            {isAdmin && <th>Comercial</th>}
+            <th>Forma de pago</th><th>Últ. pedido</th><th className="num">Saldo</th><th>Estado</th><th></th>
+          </tr></thead>
           <tbody>
-            {pend.map(c => (
-              <tr key={c.id}>
-                <td><div className="bold">{c.name}</div><div className="t-small">#{c.code} · {c.contact}</div></td>
-                <td className="muted">{c.paymentTerm}</td>
-                <td className="tabular muted">{c.lastOrder}</td>
-                <td className="num tabular bold">{eur(c.balance)}</td>
-                <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
-                <td>
-                  <button className="btn btn-secondary btn-sm" onClick={()=>setContactOpen(c)} disabled={!c.phone && !c.email && !c.mobile}>
-                    <Icon name="phone" size={13}/> Contactar
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {pend.map(c => {
+              const coName = isAdmin
+                ? (comerciales.find(co => co.odooTagId && (c.tagIds || []).includes(co.odooTagId))?.name || '—')
+                : null;
+              return (
+                <tr key={c.id}>
+                  <td><div className="bold">{c.name}</div><div className="t-small">#{c.code} · {c.contact}</div></td>
+                  {isAdmin && <td className="muted">{coName}</td>}
+                  <td className="muted">{c.paymentTerm}</td>
+                  <td className="tabular muted">{c.lastOrder}</td>
+                  <td className="num tabular bold">{eur(c.balance)}</td>
+                  <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
+                  <td>
+                    <button className="btn btn-secondary btn-sm" onClick={()=>setContactOpen(c)} disabled={!c.phone && !c.email && !c.mobile}>
+                      <Icon name="phone" size={13}/> Contactar
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -620,6 +702,8 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
   const [goalsEnabled, setGoalsEnabled] = useState(true);
   const [draftGoals, setDraftGoals] = useState({});
   const [savingGoal, setSavingGoal] = useState(null);
+  const [coFormOpen, setCoFormOpen] = useState(false);
+  const [coEditing, setCoEditing] = useState(null);
 
   React.useEffect(() => {
     let cancel = false;
@@ -656,6 +740,18 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
     setDraftGoals(d => ({ ...d, [id]: { ...d[id], [field]: Number(value) || 0 } }));
   };
 
+  const reloadComerciales = async () => {
+    try {
+      const list = await api.comerciales();
+      setSales(list);
+    } catch {}
+  };
+  const onArchiveComercial = async (s) => {
+    if (!confirm(`¿Archivar "${s.name}"? Dejará de poder iniciar sesión.`)) return;
+    try { await api.deleteComercial(s.id); reloadComerciales(); }
+    catch (e) { alert(e.message); }
+  };
+
   // Conteo de clientes por comercial usando su odooTagId.
   // Como /api/clients del admin no incluye los tags por cliente, lo dejamos
   // como '—' en lugar de inventar números.
@@ -676,10 +772,12 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }} className="hstack">
             <div className="t-h2">Comerciales</div><div className="spacer"/>
-            <button className="btn btn-primary btn-sm" disabled title="Para añadir un comercial: editar api/_lib/comerciales.js + scripts/hash-password.js"><Icon name="plus" size={14}/> Alta</button>
+            <button className="btn btn-primary btn-sm" onClick={()=>{ setCoEditing(null); setCoFormOpen(true); }}>
+              <Icon name="plus" size={14}/> Alta
+            </button>
           </div>
           <table className="tbl">
-            <thead><tr><th>Nombre</th><th>Rol</th><th className="num">Obj. mensual</th><th className="num">Obj. anual</th><th></th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Rol</th><th className="num">Obj. mensual</th><th className="num">Obj. anual</th><th></th><th></th></tr></thead>
             <tbody>
               {sales.map(s => {
                 const g = goals[s.id] || {};
@@ -718,14 +816,22 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
                         </button>
                       )}
                     </td>
+                    <td style={{ whiteSpace:'nowrap' }}>
+                      <button className="btn btn-ghost btn-sm" title="Editar comercial" onClick={()=>{ setCoEditing(s); setCoFormOpen(true); }}>
+                        <Icon name="edit" size={14}/>
+                      </button>
+                      <button className="btn btn-ghost btn-sm" title="Archivar comercial" onClick={()=>onArchiveComercial(s)} style={{ marginLeft: 4, color:'var(--danger)' }}>
+                        <Icon name="trash" size={14}/>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {sales.length === 0 && !loadingSales && (
-                <tr><td colSpan={5} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Sin comerciales</td></tr>
+                <tr><td colSpan={6} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Sin comerciales</td></tr>
               )}
               {loadingSales && (
-                <tr><td colSpan={5} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Cargando…</td></tr>
+                <tr><td colSpan={6} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Cargando…</td></tr>
               )}
             </tbody>
           </table>
@@ -789,6 +895,14 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
           </div>
         </div>
       </div>
+
+      <ComercialForm
+        open={coFormOpen}
+        mode={coEditing ? 'edit' : 'create'}
+        comercial={coEditing}
+        onClose={()=>{ setCoFormOpen(false); setCoEditing(null); }}
+        onSaved={reloadComerciales}
+      />
     </div>
   );
 }

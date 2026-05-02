@@ -7,7 +7,7 @@ import { mapVariant } from './_lib/mappers.js';
 import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!requireComercial(req, res)) return;
+  if (!(await requireComercial(req, res))) return;
   const templateId = parseInt(req.query?.templateId, 10);
   if (!templateId) return res.status(400).json({ error: 'Falta templateId' });
 

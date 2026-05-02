@@ -7,13 +7,13 @@
 // objeto JSON con la tabla de todos los comerciales.
 
 import { kvGet, kvSet, KV_ENABLED } from './_lib/kv.js';
-import { COMERCIALES } from './_lib/comerciales.js';
+import { loadComerciales } from './_lib/comerciales.js';
 import { requireComercial } from './_lib/auth.js';
 
 const KEY = 'goals';
 
 export default async function handler(req, res) {
-  const c = requireComercial(req, res);
+  const c = await requireComercial(req, res);
   if (!c) return;
 
   // Endpoint "me" para que cada comercial lea su propio objetivo.
@@ -35,7 +35,8 @@ export default async function handler(req, res) {
     });
     const { comercialId, monthly, yearly } = req.body || {};
     if (!comercialId) return res.status(400).json({ error: 'Falta comercialId' });
-    if (!COMERCIALES.find(x => x.id === comercialId)) return res.status(400).json({ error: 'comercialId no existe' });
+    const allCom = await loadComerciales();
+    if (!allCom.find(x => x.id === comercialId)) return res.status(400).json({ error: 'comercialId no existe' });
 
     const all = (await kvGet(KEY)) || {};
     all[comercialId] = {

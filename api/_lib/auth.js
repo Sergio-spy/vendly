@@ -2,7 +2,7 @@
 // Sin dependencias externas: solo node:crypto. JWT-like pero más sencillo.
 
 import { scryptSync, randomBytes, timingSafeEqual, createHmac } from 'node:crypto';
-import { COMERCIALES } from './comerciales.js';
+import { loadComerciales } from './comerciales.js';
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-production';
 
@@ -64,17 +64,19 @@ export function tokenFromReq(req) {
   return req.query?.token || null;
 }
 
-// Devuelve el comercial autenticado o null. Buscar por id (para tener datos frescos).
-export function comercialFromReq(req) {
+// Devuelve el comercial autenticado o null. Async porque consulta el merge
+// archivo + KV (loadComerciales).
+export async function comercialFromReq(req) {
   const payload = verifyToken(tokenFromReq(req));
   if (!payload) return null;
-  return COMERCIALES.find(c => c.id === payload.id) || null;
+  const all = await loadComerciales();
+  return all.find(c => c.id === payload.id) || null;
 }
 
 // Wrapper que rechaza con 401 si no hay sesión válida.
-// Uso: const c = requireComercial(req, res); if (!c) return;
-export function requireComercial(req, res) {
-  const c = comercialFromReq(req);
+// Uso: const c = await requireComercial(req, res); if (!c) return;
+export async function requireComercial(req, res) {
+  const c = await comercialFromReq(req);
   if (!c) {
     res.status(401).json({ error: 'No autorizado' });
     return null;

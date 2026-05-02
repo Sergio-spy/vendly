@@ -1,4 +1,4 @@
-import { COMERCIALES } from '../_lib/comerciales.js';
+import { loadComerciales } from '../_lib/comerciales.js';
 import { verifyPassword, signToken } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -6,7 +6,8 @@ export default async function handler(req, res) {
   const { login, password } = req.body || {};
   if (!login || !password) return res.status(400).json({ error: 'Faltan login y password' });
 
-  const c = COMERCIALES.find(x => x.login.toLowerCase() === String(login).toLowerCase());
+  const all = await loadComerciales();
+  const c = all.find(x => x.login.toLowerCase() === String(login).toLowerCase());
   if (!c || !verifyPassword(password, c.passwordHash)) {
     return res.status(401).json({ error: 'Credenciales incorrectas' });
   }

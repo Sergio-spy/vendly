@@ -6,7 +6,7 @@ import { MOCK_MODE, call } from './_lib/odoo.js';
 import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!requireComercial(req, res)) return;
+  if (!(await requireComercial(req, res))) return;
   if (req.method !== 'POST') return res.status(405).end();
 
   const tariffOdooId = parseInt(req.body?.tariffOdooId, 10);

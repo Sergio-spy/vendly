@@ -18,7 +18,7 @@ import { requireComercial } from './_lib/auth.js';
 const OPENING_RE = /apertura|opening/i;
 
 export default async function handler(req, res) {
-  const c = requireComercial(req, res);
+  const c = await requireComercial(req, res);
   if (!c) return;
 
   const expiresAt = process.env.ODOO_API_KEY_EXPIRES_AT || null;

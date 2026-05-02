@@ -42,7 +42,7 @@ async function fetchInvoicePdf(invoiceId) {
 }
 
 export default async function handler(req, res) {
-  if (!requireComercial(req, res)) return;
+  if (!(await requireComercial(req, res))) return;
   const orderId = parseInt(req.query?.orderId, 10);
   if (!orderId) return res.status(400).json({ error: 'Falta orderId' });
 

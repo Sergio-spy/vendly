@@ -73,11 +73,14 @@ export const api = {
   // KPI: range = 'day' | 'month'
   kpi: (range = 'day') => req(`/kpi?range=${encodeURIComponent(range)}`),
 
-  // KPI agregado por comercial (admin)
-  adminKpi: () => req('/admin-kpi'),
+  // KPI agregado por comercial (admin); month en formato YYYY-MM
+  adminKpi: (month) => req(`/admin-kpi${month ? `?month=${encodeURIComponent(month)}` : ''}`),
 
   // Comerciales (admin)
   comerciales: () => req('/comerciales'),
+  createComercial: (payload) => req('/comerciales', { method:'POST', body: JSON.stringify(payload) }),
+  updateComercial: (payload) => req('/comerciales', { method:'PUT',  body: JSON.stringify(payload) }),
+  deleteComercial: (id)      => req(`/comerciales?id=${encodeURIComponent(id)}`, { method:'DELETE' }),
 
   // Objetivos de venta
   goals:      () => req('/goals'),                 // (admin) tabla completa
@@ -94,6 +97,7 @@ export const api = {
   updateClient: (payload) => req('/clients', { method:'PUT',  body: JSON.stringify(payload) }),
   deleteClient: (odooId)  => req(`/clients?odooId=${encodeURIComponent(odooId)}`, { method:'DELETE' }),
   assignTariff: (payload) => req('/assign-tariff', { method:'POST', body: JSON.stringify(payload) }),
+  createTariff: (payload) => req('/tariffs', { method:'POST', body: JSON.stringify(payload) }),
 
   // Promos (admin)
   createPromo:  (payload) => req('/promos', { method:'POST', body: JSON.stringify(payload) }),

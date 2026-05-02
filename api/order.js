@@ -8,7 +8,7 @@ import { mapOrder } from './_lib/mappers.js';
 import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  const c = requireComercial(req, res);
+  const c = await requireComercial(req, res);
   if (!c) return;
 
   const id = parseInt(req.query?.id, 10);

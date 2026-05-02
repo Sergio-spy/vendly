@@ -1,5 +1,10 @@
 // Tabla de comerciales (vive fuera de Odoo para no consumir licencias).
 //
+// Hay dos capas: este archivo es la "semilla inicial" (sergio + germanm + josep)
+// y desde el panel de Administración el admin puede crear/editar comerciales,
+// almacenados en Vercel KV bajo la key 'comerciales-overrides' (ver _lib/kv.js).
+// loadComerciales() devuelve la lista merge: KV gana sobre archivo por id.
+//
 // Cada comercial tiene:
 //   id          — identificador interno
 //   login       — usuario para login
@@ -55,3 +60,45 @@ export const COMERCIALES = [
     role: 'comercial',
   },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────
+// Merge archivo + overrides en KV. Cada entrada en KV puede ser:
+//   - Un comercial nuevo (no existe en archivo).
+//   - Un override de uno del archivo (mismo id, sobreescribe campos).
+//   - Un comercial archivado: { id, archived: true } → se excluye del merge.
+//
+// Se cachea por 30 segundos en memoria de la Function para evitar pegar a KV
+// en cada request.
+
+import { kvGet } from './kv.js';
+
+const KV_KEY = 'comerciales-overrides';
+const TTL_MS = 30 * 1000;
+
+let cache = null;
+let cacheAt = 0;
+
+export async function loadComerciales() {
+  const now = Date.now();
+  if (cache && (now - cacheAt) < TTL_MS) return cache;
+
+  const overrides = (await kvGet(KV_KEY)) || {};
+
+  const byId = new Map();
+  for (const c of COMERCIALES) byId.set(c.id, { ...c });
+  for (const [id, ov] of Object.entries(overrides)) {
+    if (ov?.archived) { byId.delete(id); continue; }
+    byId.set(id, { ...(byId.get(id) || { id }), ...ov });
+  }
+  cache   = [...byId.values()];
+  cacheAt = now;
+  return cache;
+}
+
+// Invalidar cache tras escrituras admin.
+export function invalidateComercialesCache() {
+  cache = null;
+  cacheAt = 0;
+}
+
+export const COMERCIALES_KV_KEY = KV_KEY;

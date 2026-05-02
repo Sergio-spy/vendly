@@ -12,7 +12,7 @@ import { requireComercial } from './_lib/auth.js';
 const RANGES = new Set(['day', 'month']);
 
 export default async function handler(req, res) {
-  const c = requireComercial(req, res);
+  const c = await requireComercial(req, res);
   if (!c) return;
 
   const range = RANGES.has(req.query?.range) ? req.query.range : 'day';

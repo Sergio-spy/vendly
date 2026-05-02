@@ -247,9 +247,12 @@ export default function App() {
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products} myGoal={myGoal}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
-          {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)} onEdit={onEditOrder}/>}
+          {route==='orders'    && <OrdersScreen orders={orders} clients={clients} comerciales={comerciales} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)} onEdit={onEditOrder} isAdmin={salesman.role==='admin'}/>}
           {route==='clients'   && <ClientsScreen clients={clients} tariffs={tariffs} onPick={c=>{setClient(c); setRoute('catalog');}} onRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }} isAdmin={salesman.role==='admin'}/>}
-          {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products} clients={clients} onClientsRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}/>}
+          {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products} clients={clients}
+            onClientsRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}
+            onTariffsRefresh={async()=>{ const fresh = await api.tariffs(); setTariffs(fresh); }}
+            isAdmin={salesman.role==='admin'}/>}
           {route==='promos'    && <PromosScreen promos={promos} products={products}/>}
           {route==='stock'     && <StockScreen products={products}/>}
           {route==='collect'   && <CollectScreen clients={clients} comerciales={comerciales} isAdmin={salesman.role==='admin'}/>}

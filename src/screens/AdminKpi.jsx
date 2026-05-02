@@ -11,15 +11,24 @@ export function AdminKpi() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
-  const load = () => {
+  const load = (m = month) => {
     setLoading(true); setErr(null);
-    api.adminKpi()
+    api.adminKpi(m)
       .then(d => setData(d.comerciales || []))
       .catch(e => setErr(e.message))
       .finally(() => setLoading(false));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(month); }, [month]);
+
+  // Lista de últimos 12 meses para el selector.
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    const value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    return { value, label: label.charAt(0).toUpperCase() + label.slice(1) };
+  });
 
   const totalRev    = data.reduce((a,c)=>a+c.monthRevenue, 0);
   const totalOrders = data.reduce((a,c)=>a+c.monthOrders, 0);
@@ -28,10 +37,13 @@ export function AdminKpi() {
 
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
-      <div className="hstack">
+      <div className="hstack" style={{ gap: 10 }}>
         <div className="t-display">Análisis comerciales</div>
         <div className="spacer"/>
-        <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
+        <select className="input" style={{ width: 200 }} value={month} onChange={e=>setMonth(e.target.value)}>
+          {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <button className="btn btn-secondary btn-sm" onClick={()=>load(month)} disabled={loading}>
           <Icon name="sync" size={14}/> {loading ? 'Cargando…' : 'Recargar'}
         </button>
       </div>
