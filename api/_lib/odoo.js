@@ -30,17 +30,34 @@ async function jsonRpc(path, params) {
   return j.result;
 }
 
+// Reintenta hasta 3 veces (con backoff) si Odoo responde con HTML / error de
+// red. Cubre el rate-limit transitorio de Odoo SaaS en cold-starts.
+async function tryAuthenticate() {
+  const delays = [0, 500, 1500];
+  let lastErr = null;
+  for (const d of delays) {
+    if (d) await new Promise(r => setTimeout(r, d));
+    try {
+      const uid = await jsonRpc('/jsonrpc', {
+        service: 'common',
+        method: 'authenticate',
+        args: [db, usr, key, {}],
+      });
+      if (!uid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
+      return uid;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
 async function authenticate() {
   if (cachedUid) return cachedUid;
   // Si ya hay una autenticación en curso (otra query la disparó), reusamos
   // su promesa: una sola petición a Odoo aunque vengan N llamadas en paralelo.
   if (authPromise) return authPromise;
-  authPromise = jsonRpc('/jsonrpc', {
-    service: 'common',
-    method: 'authenticate',
-    args: [db, usr, key, {}],
-  }).then(uid => {
-    if (!uid) throw new Error('Autenticación Odoo fallida (revisa ODOO_USER / ODOO_API_KEY).');
+  authPromise = tryAuthenticate().then(uid => {
     cachedUid = uid;
     return uid;
   }).catch(e => {
