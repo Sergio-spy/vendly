@@ -38,9 +38,6 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
         <ProductImage p={p}/>
         {p.promo && <div className="badge-promo">{p.promo}</div>}
         {p.oferta && !p.promo && <span className="tag tag-success badge-tag">OFERTA</span>}
-        {showStock && noStock && (
-          <div className="badge-stock"><span className="tag tag-danger">Sin stock</span></div>
-        )}
       </div>
 
       <div className="hero-body">

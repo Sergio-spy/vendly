@@ -11,13 +11,15 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (MOCK_MODE) return res.status(200).json(CLIENTS);
 
-      // Filtrado por etiqueta del comercial. Si no tiene tag asignada, ve todos los clientes.
+      // Comerciales: solo sus clientes (su tag).
+      // Admin: todos los clientes con etiqueta Comercial* (excluye internos).
       const domain = [];
       if (c.odooTagId) domain.push(['category_id', 'in', [c.odooTagId]]);
+      else if (c.role === 'admin') domain.push(['category_id.name', '=ilike', 'Comercial%']);
 
       const fields = ['name','ref','vat','city','street','street2','phone','email',
         'credit','credit_limit','total_invoiced',
-        'property_product_pricelist','property_payment_term_id'];
+        'property_product_pricelist','property_payment_term_id','category_id'];
       const rows = await search_read('res.partner', domain, fields, { limit: 1000 });
 
       // Sobrescribimos `balance` para excluir asientos de apertura no conciliados
@@ -77,6 +79,15 @@ export default async function handler(req, res) {
 
       if (Object.keys(vals).length === 0) return res.status(400).json({ error: 'Sin cambios' });
       await call('res.partner', 'write', [[odooId], vals]);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (req.method === 'DELETE') {
+      const odooId = parseInt(req.query?.odooId, 10);
+      if (!odooId) return res.status(400).json({ error: 'Falta odooId' });
+      if (MOCK_MODE) return res.status(200).json({ ok: true });
+      // Archivar (active=false) en lugar de unlink: más seguro y reversible.
+      await call('res.partner', 'write', [[odooId], { active: false }]);
       return res.status(200).json({ ok: true });
     }
 

@@ -12,6 +12,7 @@ import { CLIENTS, ORDERS, PRODUCTS, PROMOS, TARIFFS } from './_lib/mock.js';
 import { mapOrder, mapPartner, mapPricelist, mapTemplate } from './_lib/mappers.js';
 import { attachDeliveryStatus } from './_lib/orders.js';
 import { resolveFamilies } from './_lib/families.js';
+import { kvGet } from './_lib/kv.js';
 import { requireComercial } from './_lib/auth.js';
 
 const OPENING_RE = /apertura|opening/i;
@@ -56,9 +57,11 @@ export default async function handler(req, res) {
 
     const clientDomain = [];
     if (c.odooTagId) clientDomain.push(['category_id', 'in', [c.odooTagId]]);
+    else if (c.role === 'admin') clientDomain.push(['category_id.name', '=ilike', 'Comercial%']);
 
     const orderDomain = [];
     if (c.odooTagId) orderDomain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
+    else if (c.role === 'admin') orderDomain.push(['partner_id.category_id.name', '=ilike', 'Comercial%']);
 
     const productCountsDomain = [['sale_ok','=',true]];
 
@@ -72,10 +75,9 @@ export default async function handler(req, res) {
       search_read('res.partner', clientDomain, [
         'name','ref','vat','city','street','street2','phone','email',
         'credit','credit_limit','total_invoiced',
-        'property_product_pricelist','property_payment_term_id',
+        'property_product_pricelist','property_payment_term_id','category_id',
       ], { limit: 1000 }),
-      search_read('product.pricelist',
-        c.role === 'admin' ? [] : [['name','=ilike','Comercial%']],
+      search_read('product.pricelist', [['name','=ilike','Comercial%']],
         ['name','currency_id'], { limit: 50 }),
       search_read('sale.order', orderDomain,
         ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids','picking_ids'],
@@ -151,6 +153,13 @@ export default async function handler(req, res) {
       active:    true,
     }));
 
+    // Objetivo del comercial logueado (Vercel KV).
+    let myGoal = null;
+    try {
+      const all = await kvGet('goals');
+      if (all && all[c.id]) myGoal = all[c.id];
+    } catch {}
+
     res.status(200).json({
       health: {
         ok: true,
@@ -163,6 +172,7 @@ export default async function handler(req, res) {
         time: new Date().toISOString(),
       },
       products, clients, tariffs, promos, orders, families,
+      myGoal,
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -12,10 +12,11 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (MOCK_MODE) return res.status(200).json(ORDERS);
 
-      // Filtramos los pedidos por los clientes etiquetados con el tag del comercial.
-      // (En Odoo, partner_id.category_id permite navegación relacional en el dominio.)
+      // Comerciales: pedidos de sus clientes (su tag).
+      // Admin: pedidos de cualquier cliente con etiqueta Comercial*.
       const domain = [];
       if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
+      else if (c.role === 'admin') domain.push(['partner_id.category_id.name', '=ilike', 'Comercial%']);
 
       const rows = await search_read('sale.order', domain,
         ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids','picking_ids'],

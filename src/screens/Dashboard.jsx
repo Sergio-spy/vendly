@@ -11,7 +11,7 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [], promos = [], products = [] }) {
+export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [], promos = [], products = [], myGoal = null }) {
   // Pedidos del mes (mes actual): partimos del listado de pedidos del comercial,
   // ya filtrado en /api/orders por su odooTagId.
   const ymNow = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
@@ -21,7 +21,8 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
     .reduce((a, o) => a + (o.total || 0), 0);
   const pendingOrders = monthOrders.filter(o => o.status === 'borrador').length;
   const monthClients  = new Set(monthOrders.map(o => o.client).filter(Boolean)).size;
-  const goalPct = KPI.monthGoal ? Math.min(100, Math.round(monthRevenue / KPI.monthGoal * 100)) : 0;
+  const monthlyGoal   = myGoal?.monthly || 0;
+  const goalPct = monthlyGoal ? Math.min(100, Math.round(monthRevenue / monthlyGoal * 100)) : 0;
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 24 }}>
       <div>
@@ -37,13 +38,17 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
           </div>
           <div className="hstack" style={{ alignItems:'baseline', gap: 10, marginBottom: 18 }}>
             <div className="tabular" style={{ fontSize: 38, fontWeight: 700, letterSpacing:'-0.02em' }}>{eur(monthRevenue)}</div>
-            <div className="muted">de {eur(KPI.monthGoal)} objetivo</div>
+            <div className="muted">{monthlyGoal ? `de ${eur(monthlyGoal)} objetivo` : 'sin objetivo asignado'}</div>
           </div>
           <div style={{ height: 8, borderRadius: 999, background:'var(--surface-3)', overflow:'hidden', marginBottom: 8 }}>
             <div style={{ height:'100%', width:`${goalPct}%`, background:'linear-gradient(90deg, var(--brand-400), var(--brand-600))', borderRadius: 999 }}/>
           </div>
           <div className="hstack" style={{ justifyContent:'space-between' }}>
-            <div className="t-small">{goalPct}% del objetivo · 13 días restantes</div>
+            <div className="t-small">{monthlyGoal ? `${goalPct}% del objetivo` : 'Sin objetivo'} · {(() => {
+              const d = new Date();
+              const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+              return `${last - d.getDate()} días restantes`;
+            })()}</div>
             <button className="btn btn-ghost btn-sm" onClick={()=>setRoute('kpi')}>Ver detalle <Icon name="chev-right" size={14}/></button>
           </div>
         </div>

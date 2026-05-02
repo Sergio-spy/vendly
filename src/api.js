@@ -73,8 +73,16 @@ export const api = {
   // KPI: range = 'day' | 'month'
   kpi: (range = 'day') => req(`/kpi?range=${encodeURIComponent(range)}`),
 
+  // KPI agregado por comercial (admin)
+  adminKpi: () => req('/admin-kpi'),
+
   // Comerciales (admin)
   comerciales: () => req('/comerciales'),
+
+  // Objetivos de venta
+  goals:      () => req('/goals'),                 // (admin) tabla completa
+  myGoal:     () => req('/goals?me=1'),            // del logueado
+  setGoal:    (payload) => req('/goals', { method:'PUT', body: JSON.stringify(payload) }),
 
   // Comparador de tarifas
   comparePricelists: (payload) => req('/pricelist-compare', { method:'POST', body: JSON.stringify(payload) }),
@@ -84,6 +92,7 @@ export const api = {
   updateOrder:  (id, payload) => req(`/order?id=${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify(payload) }),
   createClient: (payload) => req('/clients', { method:'POST', body: JSON.stringify(payload) }),
   updateClient: (payload) => req('/clients', { method:'PUT',  body: JSON.stringify(payload) }),
+  deleteClient: (odooId)  => req(`/clients?odooId=${encodeURIComponent(odooId)}`, { method:'DELETE' }),
   assignTariff: (payload) => req('/assign-tariff', { method:'POST', body: JSON.stringify(payload) }),
 
   // Promos (admin)

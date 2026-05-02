@@ -11,6 +11,7 @@ import { ProductModal } from './screens/ProductModal';
 import { OrderDetailModal } from './screens/OrderDetailModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
 import { PromosAdmin } from './screens/PromosAdmin';
+import { AdminKpi } from './screens/AdminKpi';
 import { api, auth } from './api';
 
 function buildTariffMult(tariffs) {
@@ -49,6 +50,8 @@ export default function App() {
   const [promos, setPromos]     = useState([]);
   const [orders, setOrders]     = useState([]);
   const [families, setFamilies] = useState([]);
+  const [comerciales, setComerciales] = useState([]);
+  const [myGoal, setMyGoal]           = useState(null);
   const [client, setClient]     = useState(null);
   const [mode, setMode]         = useState('…');
   const [health, setHealth]     = useState(null);
@@ -102,8 +105,12 @@ export default function App() {
           setPromos(data.promos || []);
           setOrders(data.orders || []);
           setFamilies(data.families || []);
+          setMyGoal(data.myGoal || null);
           setClient(null);
           setCart({});
+          if (salesman.role === 'admin') {
+            api.comerciales().then(setComerciales).catch(() => setComerciales([]));
+          }
           return; // OK
         } catch (e) {
           lastErr = e;
@@ -139,7 +146,7 @@ export default function App() {
   const titles = {
     dashboard:'Inicio', catalog:'Catálogo', orders:'Pedidos', clients:'Clientes',
     tariffs:'Tarifas', promos:'Promociones', stock:'Stock', collect:'Cobros',
-    kpi:'Mi rendimiento', admin:'Administración', 'admin-promos':'Promociones (admin)'
+    kpi:'Mi rendimiento', admin:'Administración', 'admin-promos':'Promociones (admin)', 'admin-kpi':'Análisis comerciales'
   };
 
   const onConfirm = async () => {
@@ -238,14 +245,14 @@ export default function App() {
         />
         <ApiKeyBanner health={health} isAdmin={salesman.role==='admin'}/>
         <div className="app-content">
-          {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products}/>}
+          {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products} myGoal={myGoal}/>}
           {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients} onNew={()=>setRoute('catalog')} onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }} onView={(o)=>setOrderDetailOpen(o)} onEdit={onEditOrder}/>}
-          {route==='clients'   && <ClientsScreen clients={clients} tariffs={tariffs} onPick={c=>{setClient(c); setRoute('catalog');}} onRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}/>}
+          {route==='clients'   && <ClientsScreen clients={clients} tariffs={tariffs} onPick={c=>{setClient(c); setRoute('catalog');}} onRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }} isAdmin={salesman.role==='admin'}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products} clients={clients} onClientsRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}/>}
           {route==='promos'    && <PromosScreen promos={promos} products={products}/>}
           {route==='stock'     && <StockScreen products={products}/>}
-          {route==='collect'   && <CollectScreen clients={clients}/>}
+          {route==='collect'   && <CollectScreen clients={clients} comerciales={comerciales} isAdmin={salesman.role==='admin'}/>}
           {route==='kpi'       && <KpiScreen clients={clients} products={products}/>}
           {route==='admin'     && <AdminScreen mode={mode} health={health} products={products} clients={clients} tariffs={tariffs} orders={orders} promos={promos} onRefresh={async()=>{
             const data = await api.bootstrap();
@@ -255,6 +262,7 @@ export default function App() {
             setHealth(data.health);
           }}/>}
           {route==='admin-promos' && <PromosAdmin onRefresh={async()=>{ const fresh = await api.promos(); setPromos(fresh); }}/>}
+          {route==='admin-kpi'    && <AdminKpi/>}
         </div>
       </div>
 

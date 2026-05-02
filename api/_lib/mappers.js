@@ -23,6 +23,9 @@ export function mapPartner(r) {
     contact:        r.child_ids?.[0]?.name || r.name,
     phone:          r.phone || '',
     email:          r.email || '',
+    // IDs de tags Odoo asociadas al partner. Sirve para filtrar por comercial
+    // en pantallas admin (cobros, pedidos por comercial, etc.).
+    tagIds:         Array.isArray(r.category_id) ? r.category_id : [],
   };
 }
 

@@ -89,10 +89,15 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
   );
 }
 
-export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh }) {
+export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh, isAdmin = false }) {
   const [q, setQ] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const onDelete = async (c) => {
+    if (!confirm(`¿Archivar "${c.name}"? Dejará de aparecer en la app.`)) return;
+    try { await api.deleteClient(c.odooId); onRefresh?.(); }
+    catch (e) { alert(e.message); }
+  };
   const filt = clients.filter(c => (c.name+c.code+c.city).toLowerCase().includes(q.toLowerCase()));
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
@@ -111,7 +116,7 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh })
       </div>
       <div className="vstack" style={{ gap: 8 }}>
         {filt.map(c => (
-          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:'48px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto auto', gap: 12, alignItems:'center' }} onClick={()=>onPick(c)}>
+          <div key={c.id} className="card" style={{ padding: '14px 18px', cursor:'pointer', display:'grid', gridTemplateColumns:`48px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto ${isAdmin ? 'auto' : ''} auto`, gap: 12, alignItems:'center' }} onClick={()=>onPick(c)}>
             <div className="avatar lg">{c.code.slice(-2)}</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
@@ -133,6 +138,11 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh })
             <button className="btn btn-ghost btn-icon btn-sm" title="Editar cliente" onClick={(e)=>{ e.stopPropagation(); setEditing(c); setFormOpen(true); }}>
               <Icon name="edit" size={14}/>
             </button>
+            {isAdmin && c.odooId && (
+              <button className="btn btn-ghost btn-icon btn-sm" title="Archivar cliente" onClick={(e)=>{ e.stopPropagation(); onDelete(c); }} style={{ color:'var(--danger)' }}>
+                <Icon name="trash" size={14}/>
+              </button>
+            )}
             <Icon name="chev-right" size={16} style={{ color:'var(--ink-4)' }}/>
           </div>
         ))}
@@ -389,13 +399,29 @@ export function StockScreen({ products = [] }) {
   );
 }
 
-export function CollectScreen({ clients = [] }) {
-  const pend = clients.filter(c => c.balance > 0);
+export function CollectScreen({ clients = [], comerciales = [], isAdmin = false }) {
+  const [tagFilter, setTagFilter] = useState('all'); // 'all' | odooTagId (number)
+  const [contactOpen, setContactOpen] = useState(null);
+
+  const pendAll = clients.filter(c => c.balance > 0);
+  const pend = (isAdmin && tagFilter !== 'all')
+    ? pendAll.filter(c => (c.tagIds || []).includes(Number(tagFilter)))
+    : pendAll;
   const total = pend.reduce((a,c)=>a+c.balance,0);
-  const [contactOpen, setContactOpen] = useState(null); // cliente del popover
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
-      <div className="t-display">Cobros pendientes</div>
+      <div className="hstack">
+        <div className="t-display">Cobros pendientes</div>
+        <div className="spacer"/>
+        {isAdmin && comerciales.length > 0 && (
+          <select className="input" style={{ width: 220 }} value={tagFilter} onChange={e=>setTagFilter(e.target.value)}>
+            <option value="all">Todos los comerciales</option>
+            {comerciales.filter(co => co.odooTagId).map(co => (
+              <option key={co.id} value={co.odooTagId}>{co.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="hstack" style={{ gap: 14 }}>
         <div className="card" style={{ padding: 18, flex: 1 }}>
           <div className="t-h3 muted">Total pendiente</div>
@@ -590,16 +616,45 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
   const [sales, setSales] = useState([]);
   const [loadingSales, setLoadingSales] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [goals, setGoals] = useState({});
+  const [goalsEnabled, setGoalsEnabled] = useState(true);
+  const [draftGoals, setDraftGoals] = useState({});
+  const [savingGoal, setSavingGoal] = useState(null);
 
   React.useEffect(() => {
     let cancel = false;
     setLoadingSales(true);
-    api.comerciales()
-      .then(d => { if (!cancel) setSales(d); })
-      .catch(() => { if (!cancel) setSales([]); })
-      .finally(() => { if (!cancel) setLoadingSales(false); });
+    Promise.all([
+      api.comerciales().catch(() => []),
+      api.goals().catch(() => ({ enabled: false, goals: {} })),
+    ]).then(([sList, gData]) => {
+      if (cancel) return;
+      setSales(sList);
+      setGoals(gData?.goals || {});
+      setGoalsEnabled(gData?.enabled !== false);
+    }).finally(() => { if (!cancel) setLoadingSales(false); });
     return () => { cancel = true; };
   }, []);
+
+  const saveGoal = async (comercialId) => {
+    const draft = draftGoals[comercialId] || {};
+    setSavingGoal(comercialId);
+    try {
+      const res = await api.setGoal({
+        comercialId,
+        monthly: draft.monthly ?? goals[comercialId]?.monthly ?? 0,
+        yearly:  draft.yearly  ?? goals[comercialId]?.yearly  ?? 0,
+      });
+      setGoals(res.goals || {});
+      setDraftGoals(d => { const n = { ...d }; delete n[comercialId]; return n; });
+    } catch (e) {
+      alert(e.message);
+    } finally { setSavingGoal(null); }
+  };
+
+  const setDraft = (id, field, value) => {
+    setDraftGoals(d => ({ ...d, [id]: { ...d[id], [field]: Number(value) || 0 } }));
+  };
 
   // Conteo de clientes por comercial usando su odooTagId.
   // Como /api/clients del admin no incluye los tags por cliente, lo dejamos
@@ -624,24 +679,61 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
             <button className="btn btn-primary btn-sm" disabled title="Para añadir un comercial: editar api/_lib/comerciales.js + scripts/hash-password.js"><Icon name="plus" size={14}/> Alta</button>
           </div>
           <table className="tbl">
-            <thead><tr><th>Nombre</th><th>Zona</th><th>Etiqueta Odoo</th><th>Rol</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Rol</th><th className="num">Obj. mensual</th><th className="num">Obj. anual</th><th></th></tr></thead>
             <tbody>
-              {sales.map(s => (
-                <tr key={s.id}>
-                  <td><div className="bold">{s.name}</div><div className="t-small">{s.email || s.login}</div></td>
-                  <td className="muted">{s.zone || '—'}</td>
-                  <td className="tabular muted">{s.odooTagId ?? '—'}</td>
-                  <td><span className={`tag ${s.role==='admin'?'tag-info':'tag-neutral'}`}>{s.role}</span></td>
-                </tr>
-              ))}
+              {sales.map(s => {
+                const g = goals[s.id] || {};
+                const d = draftGoals[s.id] || {};
+                const monthly = d.monthly ?? g.monthly ?? '';
+                const yearly  = d.yearly  ?? g.yearly  ?? '';
+                const dirty = d.monthly != null || d.yearly != null;
+                const isComercial = s.role === 'comercial';
+                return (
+                  <tr key={s.id}>
+                    <td>
+                      <div className="bold">{s.name}</div>
+                      <div className="t-small">{s.email || s.login}{s.zone ? ` · ${s.zone}` : ''}{s.odooTagId ? ` · tag ${s.odooTagId}` : ''}</div>
+                    </td>
+                    <td><span className={`tag ${s.role==='admin'?'tag-info':'tag-neutral'}`}>{s.role}</span></td>
+                    <td className="num">
+                      {isComercial ? (
+                        <input type="number" className="input" style={{ width: 110, height: 32, padding:'0 8px', textAlign:'right' }}
+                               value={monthly}
+                               onChange={e=>setDraft(s.id, 'monthly', e.target.value)}
+                               disabled={!goalsEnabled || savingGoal === s.id}/>
+                      ) : <span className="muted">—</span>}
+                    </td>
+                    <td className="num">
+                      {isComercial ? (
+                        <input type="number" className="input" style={{ width: 130, height: 32, padding:'0 8px', textAlign:'right' }}
+                               value={yearly}
+                               onChange={e=>setDraft(s.id, 'yearly', e.target.value)}
+                               disabled={!goalsEnabled || savingGoal === s.id}/>
+                      ) : <span className="muted">—</span>}
+                    </td>
+                    <td>
+                      {isComercial && dirty && (
+                        <button className="btn btn-primary btn-sm" onClick={()=>saveGoal(s.id)} disabled={!goalsEnabled || savingGoal === s.id}>
+                          <Icon name="check" size={14}/> {savingGoal === s.id ? 'Guardando…' : 'Guardar'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {sales.length === 0 && !loadingSales && (
-                <tr><td colSpan={4} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Sin comerciales</td></tr>
+                <tr><td colSpan={5} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Sin comerciales</td></tr>
               )}
               {loadingSales && (
-                <tr><td colSpan={4} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Cargando…</td></tr>
+                <tr><td colSpan={5} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Cargando…</td></tr>
               )}
             </tbody>
           </table>
+          {!goalsEnabled && (
+            <div className="t-small" style={{ padding:'12px 22px', color:'var(--warn)', borderTop:'1px solid var(--border)' }}>
+              ⚠ Vercel KV no configurado. Crea un KV store en Vercel → Storage para poder guardar objetivos.
+            </div>
+          )}
         </div>
 
         <div className="card" style={{ padding: 22 }}>

@@ -8,9 +8,9 @@ export default async function handler(req, res) {
   if (!c) return;
   try {
     if (MOCK_MODE) return res.status(200).json(TARIFFS);
-    // Admin ve todas las tarifas; comerciales solo las que empiezan por "Comercial".
-    const domain = c.role === 'admin' ? [] : [['name','=ilike','Comercial%']];
-    const rows = await search_read('product.pricelist', domain, ['name','currency_id'], { limit: 50 });
+    // Solo las tarifas comerciales (las internas no interesan en la app).
+    const rows = await search_read('product.pricelist',
+      [['name','=ilike','Comercial%']], ['name','currency_id'], { limit: 50 });
     res.status(200).json(rows.map(mapPricelist));
   } catch (e) {
     res.status(500).json({ error: e.message });

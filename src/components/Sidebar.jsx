@@ -47,6 +47,9 @@ export function Sidebar({ route, setRoute, salesman, orderCount, onLogout, colla
           <button className="sb-item" data-active={String(route === 'admin-promos')} onClick={() => setRoute('admin-promos')} title={collapsed ? 'Promociones' : undefined}>
             <Icon name="promo" size={18}/>{!collapsed && <span>Promociones</span>}
           </button>
+          <button className="sb-item" data-active={String(route === 'admin-kpi')} onClick={() => setRoute('admin-kpi')} title={collapsed ? 'Análisis comerciales' : undefined}>
+            <Icon name="kpi" size={18}/>{!collapsed && <span>Análisis comerciales</span>}
+          </button>
         </>
       )}
 
