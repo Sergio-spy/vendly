@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
 
       const rows = await search_read('sale.order', domain,
-        ['name','partner_id','date_order','amount_total','state','order_line','invoice_ids'],
+        ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids'],
         { limit: 200, order: 'date_order desc' });
       return res.status(200).json(rows.map(mapOrder));
     }

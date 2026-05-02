@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon';
 import { api } from '../api';
 import { eur } from '../lib/format';
 
-const STATUS_LABEL = { borrador:'Borrador', pendiente:'Pendiente', exportado:'Exportado' };
+const STATUS_LABEL = { borrador:'Borrador', pendiente:'Pendiente', facturado:'Facturado', cancelado:'Cancelado' };
 
 export function OrderDetailModal({ order, onClose }) {
   const [data, setData] = useState(null);
@@ -37,7 +37,7 @@ export function OrderDetailModal({ order, onClose }) {
             <div className="t-h1">{data?.order?.id || order.id}</div>
           </div>
           <div className="spacer"/>
-          <span className={`tag ${order.status==='exportado'?'tag-success':order.status==='pendiente'?'tag-warn':'tag-neutral'}`}>
+          <span className={`tag ${order.status==='facturado'?'tag-success':order.status==='pendiente'?'tag-warn':'tag-neutral'}`}>
             {STATUS_LABEL[order.status] || order.status}
           </span>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x"/></button>

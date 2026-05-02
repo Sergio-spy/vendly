@@ -100,7 +100,15 @@ export function mapPricelist(r) {
 }
 
 export function mapOrder(r) {
-  const stateMap = { draft:'borrador', sent:'pendiente', sale:'pendiente', done:'exportado', cancel:'borrador' };
+  // Estado mostrado en la app:
+  // - cancelado: state=cancel
+  // - borrador:  state=draft
+  // - facturado: invoice_status='invoiced' (la factura está emitida y completa)
+  // - pendiente: el resto (sent / sale aún no facturados)
+  let status = 'pendiente';
+  if (r.state === 'cancel')                   status = 'cancelado';
+  else if (r.state === 'draft')               status = 'borrador';
+  else if (r.invoice_status === 'invoiced')   status = 'facturado';
   return {
     id:         r.name,
     odooId:     r.id,
@@ -108,7 +116,7 @@ export function mapOrder(r) {
     date:       (r.date_order || '').slice(0,10),
     total:      r.amount_total || 0,
     lines:      r.order_line?.length || 0,
-    status:     stateMap[r.state] || 'borrador',
+    status,
     invoiceIds: Array.isArray(r.invoice_ids) ? r.invoice_ids : [],
   };
 }

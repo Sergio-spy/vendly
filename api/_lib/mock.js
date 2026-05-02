@@ -64,12 +64,12 @@ export const PROMOS = [
 ];
 
 export const ORDERS = [
-  { id:'PD-2604-018', client:'C05', date:'2026-04-26', total:1284.40, lines:14, status:'exportado' },
-  { id:'PD-2604-017', client:'C03', date:'2026-04-25', total:412.80,  lines:6,  status:'exportado' },
-  { id:'PD-2604-014', client:'C01', date:'2026-04-22', total:892.10,  lines:9,  status:'exportado' },
+  { id:'PD-2604-018', client:'C05', date:'2026-04-26', total:1284.40, lines:14, status:'facturado' },
+  { id:'PD-2604-017', client:'C03', date:'2026-04-25', total:412.80,  lines:6,  status:'facturado' },
+  { id:'PD-2604-014', client:'C01', date:'2026-04-22', total:892.10,  lines:9,  status:'facturado' },
   { id:'PD-2604-011', client:'C02', date:'2026-04-22', total:2410.50, lines:18, status:'pendiente' },
-  { id:'PD-2604-009', client:'C06', date:'2026-04-19', total:684.30,  lines:11, status:'exportado' },
-  { id:'PD-2604-006', client:'C01', date:'2026-04-14', total:312.00,  lines:4,  status:'exportado' },
+  { id:'PD-2604-009', client:'C06', date:'2026-04-19', total:684.30,  lines:11, status:'facturado' },
+  { id:'PD-2604-006', client:'C01', date:'2026-04-14', total:312.00,  lines:4,  status:'facturado' },
   { id:'PD-2604-002', client:'C07', date:'2026-04-08', total:512.40,  lines:7,  status:'borrador' },
 ];
 
