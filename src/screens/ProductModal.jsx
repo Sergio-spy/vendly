@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { api } from '../api';
+import { eur } from '../lib/format';
 
 const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulosa & papel', bolsa:'Bolsas & basura', utens:'Utensilios', dispe:'Dispensadores', epi:'EPI & guantes' };
 
@@ -79,11 +80,11 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
               </div>
               <div>
                 <div className="t-tiny">PVP</div>
-                <div className="tabular muted" style={{ fontSize: 16 }}>{p.pvp.toFixed(2)} €</div>
+                <div className="tabular muted" style={{ fontSize: 16 }}>{eur(p.pvp)}</div>
               </div>
               <div>
                 <div className="t-tiny">PRECIO TARIFA {tariff}</div>
-                <div className="tabular bold" style={{ fontSize: 22, color: 'var(--brand-700)' }}>{price.toFixed(2)} €</div>
+                <div className="tabular bold" style={{ fontSize: 22, color: 'var(--brand-700)' }}>{eur(price)}</div>
               </div>
               {showStock && (
                 <div>
@@ -137,7 +138,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                               {showStock && <span> · {v.stock} ud.</span>}
                             </div>
                           </div>
-                          <div className="tabular bold" style={{ fontSize: 14, color:'var(--brand-700)', minWidth: 70, textAlign: 'right' }}>{vPrice.toFixed(2)} €</div>
+                          <div className="tabular bold" style={{ fontSize: 14, color:'var(--brand-700)', minWidth: 70, textAlign: 'right' }}>{eur(vPrice)}</div>
                           {vQty > 0 ? (
                             <div className="stepper active">
                               <button onClick={() => setVQty(Math.max(0, vQty - 1))}><Icon name="minus" size={14}/></button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
+import { eur } from '../lib/format';
 
 export function ClientPicker({ open, onClose, clients = [], current, onPick }) {
   const [q, setQ] = useState('');
@@ -30,7 +31,7 @@ export function ClientPicker({ open, onClose, clients = [], current, onPick }) {
               <div style={{ flex:1 }}>
                 <div className="hstack" style={{ gap: 6 }}>
                   <span style={{ fontWeight: 600, fontSize: 14.5 }}>{c.name}</span>
-                  {c.balance > 0 && <span className="tag tag-warn">saldo {c.balance.toFixed(2)} €</span>}
+                  {c.balance > 0 && <span className="tag tag-warn">saldo {eur(c.balance)}</span>}
                 </div>
                 <div className="t-small">#{c.code} · {c.city} · CIF {c.cif}</div>
               </div>

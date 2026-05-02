@@ -1,5 +1,6 @@
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
+import { eur } from '../lib/format';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -26,8 +27,8 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
             <span className="tag tag-success">+12% vs mes anterior</span>
           </div>
           <div className="hstack" style={{ alignItems:'baseline', gap: 10, marginBottom: 18 }}>
-            <div className="tabular" style={{ fontSize: 38, fontWeight: 700, letterSpacing:'-0.02em' }}>{KPI.monthRevenue.toLocaleString('es-ES',{minimumFractionDigits:2})} €</div>
-            <div className="muted">de {KPI.monthGoal.toLocaleString('es-ES')} € objetivo</div>
+            <div className="tabular" style={{ fontSize: 38, fontWeight: 700, letterSpacing:'-0.02em' }}>{eur(KPI.monthRevenue)}</div>
+            <div className="muted">de {eur(KPI.monthGoal)} objetivo</div>
           </div>
           <div style={{ height: 8, borderRadius: 999, background:'var(--surface-3)', overflow:'hidden', marginBottom: 8 }}>
             <div style={{ height:'100%', width:`${goalPct}%`, background:'linear-gradient(90deg, var(--brand-400), var(--brand-600))', borderRadius: 999 }}/>
@@ -50,7 +51,7 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
 
         <div className="card" style={{ padding: 22 }}>
           <div className="t-h3 muted" style={{ marginBottom: 10 }}>Cobros pendientes</div>
-          <div className="tabular" style={{ fontSize: 32, fontWeight: 700, color:'var(--warn)' }}>{KPI.pendingCollections.toLocaleString('es-ES',{minimumFractionDigits:2})} €</div>
+          <div className="tabular" style={{ fontSize: 32, fontWeight: 700, color:'var(--warn)' }}>{eur(KPI.pendingCollections)}</div>
           <div className="t-small" style={{ marginTop: 12 }}>2 clientes con saldo &gt; 30 días</div>
           <button className="btn btn-secondary btn-sm" style={{ marginTop: 12, width:'100%' }} onClick={()=>setRoute('collect')}>Gestionar cobros</button>
         </div>
@@ -73,7 +74,7 @@ export function Dashboard({ setRoute, salesman, recentOrders, clients = [], prom
                     <td className="bold">{o.id}</td>
                     <td>{cl?.name}</td>
                     <td className="muted">{o.date}</td>
-                    <td className="num bold">{o.total.toFixed(2)} €</td>
+                    <td className="num bold">{eur(o.total)}</td>
                     <td>
                       <span className={`tag ${o.status==='exportado'?'tag-success':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span>
                     </td>

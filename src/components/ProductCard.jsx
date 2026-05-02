@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon, ProdGlyph } from './Icon';
 import { productImageUrl } from '../api';
+import { eur } from '../lib/format';
 
 // Imagen del producto con fallback al glyph cuando no hay imagen en Odoo.
 // Acepta tanto productos con odooId (variante) como con templateId (plantilla).
@@ -51,7 +52,7 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
             {!p.sku && !p.ean && p.brand}
           </div>
           <div className="hero-name">{p.name}</div>
-          <div className="hero-price">{price.toFixed(2)} €</div>
+          <div className="hero-price">{eur(price)}</div>
           {showStock && (
             <div className="hero-stock" style={{ color: lowStock ? 'var(--warn)' : noStock ? 'var(--danger)' : 'var(--ink-4)' }}>
               <span className={`dot ${lowStock?'dot-warn':noStock?'dot-danger':'dot-success'}`} style={{ display:'inline-block', marginRight:6, verticalAlign:'middle' }}/>
@@ -100,7 +101,7 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
         </div>
         <div style={{ fontWeight: 600, fontSize: 'var(--d-fs-title)' }}>{p.name}</div>
       </div>
-      <div className="tabular" style={{ fontWeight: 700 }}>{price.toFixed(2)} €</div>
+      <div className="tabular" style={{ fontWeight: 700 }}>{eur(price)}</div>
       {showStock && (
         <div className="tabular" style={{ color: lowStock ? 'var(--warn)' : noStock ? 'var(--danger)' : 'var(--ink-3)', fontSize: 13 }}>
           <span className={`dot ${lowStock?'dot-warn':noStock?'dot-danger':'dot-success'}`} style={{ display:'inline-block', marginRight:6, verticalAlign:'middle' }}/>

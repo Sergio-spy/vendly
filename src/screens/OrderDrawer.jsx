@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
+import { eur } from '../lib/format';
 
 export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, tariff: tariffProp, tariffMult = {}, editing = false }) {
   const [discount, setDiscount] = useState(0);
@@ -49,14 +50,14 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
                     <div className="t-tiny">{l.e.sku || ''}{l.e.sku && l.e.ean ? ' · ' : ''}{l.e.ean || ''}</div>
                     <div style={{ fontSize: 13, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l.e.name}</div>
                     {l.e.attrLabel && <div className="t-small">{l.e.attrLabel}</div>}
-                    <div className="t-small tabular">{l.price.toFixed(2)} € / ud</div>
+                    <div className="t-small tabular">{eur(l.price)} / ud</div>
                   </div>
                   <div className="stepper">
                     <button onClick={()=>updateCartQty(Number(l.variantId), Math.max(0, l.qty-1))}><Icon name="minus" size={14}/></button>
                     <input value={l.qty} onChange={e=>updateCartQty(Number(l.variantId), Math.max(0, parseInt(e.target.value)||0))}/>
                     <button onClick={()=>updateCartQty(Number(l.variantId), l.qty+1)}><Icon name="plus" size={14}/></button>
                   </div>
-                  <div className="tabular bold" style={{ width: 70, textAlign:'right' }}>{l.total.toFixed(2)} €</div>
+                  <div className="tabular bold" style={{ width: 70, textAlign:'right' }}>{eur(l.total)}</div>
                 </div>
               ))}
             </div>
@@ -65,20 +66,20 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
 
         <div className="drawer-foot">
           <div className="vstack" style={{ gap: 8, marginBottom: 14 }}>
-            <div className="hstack"><span className="muted">Subtotal</span><span className="spacer"/><span className="tabular">{subtotal.toFixed(2)} €</span></div>
+            <div className="hstack"><span className="muted">Subtotal</span><span className="spacer"/><span className="tabular">{eur(subtotal)}</span></div>
             <div className="hstack" style={{ alignItems:'center' }}>
               <span className="muted">Descuento</span>
               <div className="spacer"/>
               <div className="hstack" style={{ gap: 6 }}>
                 <input type="number" className="input" style={{ width: 64, height: 28, padding:'0 8px' }} value={discount} onChange={e=>setDiscount(parseFloat(e.target.value)||0)}/>
                 <span className="muted">%</span>
-                <span className="tabular muted-2" style={{ minWidth: 60, textAlign:'right' }}>−{desc.toFixed(2)} €</span>
+                <span className="tabular muted-2" style={{ minWidth: 60, textAlign:'right' }}>−{eur(desc)}</span>
               </div>
             </div>
-            <div className="hstack"><span className="muted">Base imponible</span><span className="spacer"/><span className="tabular">{base.toFixed(2)} €</span></div>
-            <div className="hstack"><span className="muted">IVA 21%</span><span className="spacer"/><span className="tabular">{iva.toFixed(2)} €</span></div>
+            <div className="hstack"><span className="muted">Base imponible</span><span className="spacer"/><span className="tabular">{eur(base)}</span></div>
+            <div className="hstack"><span className="muted">IVA 21%</span><span className="spacer"/><span className="tabular">{eur(iva)}</span></div>
             <div className="divider" style={{ margin:'4px 0' }}/>
-            <div className="hstack"><span style={{ fontWeight: 700 }}>Total</span><span className="spacer"/><span className="tabular" style={{ fontSize: 22, fontWeight: 700 }}>{total.toFixed(2)} €</span></div>
+            <div className="hstack"><span style={{ fontWeight: 700 }}>Total</span><span className="spacer"/><span className="tabular" style={{ fontSize: 22, fontWeight: 700 }}>{eur(total)}</span></div>
           </div>
           <div className="hstack" style={{ gap: 8 }}>
             <button className="btn btn-secondary" style={{ flex:1 }}>Guardar borrador</button>

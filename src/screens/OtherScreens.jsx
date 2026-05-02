@@ -3,6 +3,7 @@ import { Icon, ProdGlyph } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { ClientForm } from './ClientForm';
 import { TariffAssignModal } from './TariffAssignModal';
+import { eur } from '../lib/format';
 
 const KPI = {
   monthRevenue: 32420.50,
@@ -58,7 +59,7 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
                   <td>{cl?.name}<div className="t-small">#{cl?.code} · {cl?.city}</div></td>
                   <td className="muted tabular">{o.date}</td>
                   <td className="tabular">{o.lines}</td>
-                  <td className="num bold tabular">{o.total.toFixed(2)} €</td>
+                  <td className="num bold tabular">{eur(o.total)}</td>
                   <td><span className={`tag ${o.status==='exportado'?'tag-success':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span></td>
                   <td onClick={e=>e.stopPropagation()} style={{ whiteSpace:'nowrap' }}>
                     <button className="btn btn-ghost btn-sm" title="Ver" onClick={()=>onView?.(o)}><Icon name="eye" size={14}/></button>
@@ -109,11 +110,11 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh })
             <span className="tag tag-info" style={{ background:'var(--surface-3)', color:'var(--ink-2)', justifySelf:'start', maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', display:'inline-block' }} title={c.tariff}>{c.tariff}</span>
             <div>
               <div className="t-tiny">VENTA YTD</div>
-              <div className="tabular bold">{c.totalYtd.toFixed(2)} €</div>
+              <div className="tabular bold">{eur(c.totalYtd)}</div>
             </div>
             <div>
               <div className="t-tiny">SALDO</div>
-              <div className="tabular" style={{ color: c.balance>0?'var(--warn)':'var(--ink-2)', fontWeight: 600 }}>{c.balance.toFixed(2)} €</div>
+              <div className="tabular" style={{ color: c.balance>0?'var(--warn)':'var(--ink-2)', fontWeight: 600 }}>{eur(c.balance)}</div>
             </div>
             <div>
               <div className="t-tiny">ÚLT. PEDIDO</div>
@@ -189,10 +190,10 @@ export function TariffsScreen({ tariffs = [], products = [], clients = [], onCli
             {products.slice(0,8).map(p => (
               <tr key={p.id}>
                 <td><div className="bold">{p.name}</div><div className="t-small">{p.sku}</div></td>
-                <td className="num tabular muted">{p.pvp.toFixed(2)} €</td>
-                <td className="num tabular bold" style={{ color:'var(--brand-700)' }}>{(p.pvp*0.92).toFixed(2)} €</td>
-                <td className="num tabular bold">{p.pvp.toFixed(2)} €</td>
-                <td className="num tabular bold" style={{ color:'var(--warn)' }}>{(p.pvp*1.06).toFixed(2)} €</td>
+                <td className="num tabular muted">{eur(p.pvp)}</td>
+                <td className="num tabular bold" style={{ color:'var(--brand-700)' }}>{eur(p.pvp*0.92)}</td>
+                <td className="num tabular bold">{eur(p.pvp)}</td>
+                <td className="num tabular bold" style={{ color:'var(--warn)' }}>{eur(p.pvp*1.06)}</td>
               </tr>
             ))}
           </tbody>
@@ -272,7 +273,7 @@ export function CollectScreen({ clients = [] }) {
       <div className="hstack" style={{ gap: 14 }}>
         <div className="card" style={{ padding: 18, flex: 1 }}>
           <div className="t-h3 muted">Total pendiente</div>
-          <div className="tabular" style={{ fontSize: 30, fontWeight: 700, color:'var(--warn)' }}>{total.toFixed(2)} €</div>
+          <div className="tabular" style={{ fontSize: 30, fontWeight: 700, color:'var(--warn)' }}>{eur(total)}</div>
         </div>
         <div className="card" style={{ padding: 18, flex: 1 }}>
           <div className="t-h3 muted">Clientes con saldo</div>
@@ -292,7 +293,7 @@ export function CollectScreen({ clients = [] }) {
                 <td><div className="bold">{c.name}</div><div className="t-small">#{c.code} · {c.contact}</div></td>
                 <td className="muted">{c.paymentTerm}</td>
                 <td className="tabular muted">{c.lastOrder}</td>
-                <td className="num tabular bold">{c.balance.toFixed(2)} €</td>
+                <td className="num tabular bold">{eur(c.balance)}</td>
                 <td><span className={`tag ${c.status==='pendiente'?'tag-danger':'tag-warn'}`}>{c.status==='pendiente'?'vencido':'al día'}</span></td>
                 <td><button className="btn btn-secondary btn-sm"><Icon name="phone" size={13}/> Llamar</button></td>
               </tr>

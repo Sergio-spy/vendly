@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { api } from '../api';
+import { eur } from '../lib/format';
 
 const STATUS_LABEL = { borrador:'Borrador', pendiente:'Pendiente', exportado:'Exportado' };
 
@@ -90,9 +91,9 @@ export function OrderDetailModal({ order, onClose }) {
                           )}
                         </td>
                         <td className="num tabular">{l.qty}</td>
-                        <td className="num tabular">{l.price.toFixed(2)} €</td>
+                        <td className="num tabular">{eur(l.price)}</td>
                         <td className="num tabular">{l.discount ? `${l.discount}%` : '—'}</td>
-                        <td className="num tabular bold">{l.subtotal.toFixed(2)} €</td>
+                        <td className="num tabular bold">{eur(l.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -103,17 +104,17 @@ export function OrderDetailModal({ order, onClose }) {
                 <div className="hstack" style={{ minWidth: 260 }}>
                   <span className="muted">Base imponible</span>
                   <span className="spacer"/>
-                  <span className="tabular">{data.order.amountUntaxed.toFixed(2)} €</span>
+                  <span className="tabular">{eur(data.order.amountUntaxed)}</span>
                 </div>
                 <div className="hstack" style={{ minWidth: 260 }}>
                   <span className="muted">Impuestos</span>
                   <span className="spacer"/>
-                  <span className="tabular">{data.order.amountTax.toFixed(2)} €</span>
+                  <span className="tabular">{eur(data.order.amountTax)}</span>
                 </div>
                 <div className="hstack" style={{ minWidth: 260, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
                   <span style={{ fontWeight: 700 }}>Total</span>
                   <span className="spacer"/>
-                  <span className="tabular" style={{ fontSize: 18, fontWeight: 700 }}>{data.order.total.toFixed(2)} €</span>
+                  <span className="tabular" style={{ fontSize: 18, fontWeight: 700 }}>{eur(data.order.total)}</span>
                 </div>
               </div>
             </>

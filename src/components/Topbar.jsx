@@ -1,4 +1,5 @@
 import { Icon } from './Icon';
+import { eur } from '../lib/format';
 
 export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, onToggleSidebar }) {
   return (
@@ -40,7 +41,7 @@ export function Topbar({ title, client, setClientPickerOpen, online, lastSync, o
       {orderLines > 0 && (
         <button className="btn btn-primary tb-cart" onClick={onOpenOrder}>
           <Icon name="cart" size={16}/>
-          <span className="t-num tb-cart-total">{orderTotal.toFixed(2)} €</span>
+          <span className="t-num tb-cart-total">{eur(orderTotal)}</span>
           <span className="tb-cart-count" style={{ background:'rgba(255,255,255,.25)', borderRadius:'999px', padding:'1px 7px', fontSize:11, marginLeft:2 }}>{orderLines}</span>
         </button>
       )}
