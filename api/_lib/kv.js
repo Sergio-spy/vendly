@@ -1,10 +1,13 @@
-// Cliente mínimo de Vercel KV (Upstash Redis) vía REST.
-// Si las env vars no están definidas (KV_REST_API_URL, KV_REST_API_TOKEN),
-// las funciones devuelven null para get y throw para set — útil para detectar
-// configuración faltante sin depender del paquete @vercel/kv.
+// Cliente mínimo de Upstash Redis (la opción "Vercel KV" original) vía REST.
+// Acepta tanto las env vars de la integración Upstash de Vercel
+// (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN) como las antiguas
+// "Vercel KV" (KV_REST_API_URL, KV_REST_API_TOKEN). El protocolo es el mismo.
+//
+// Si no hay nada configurado, las funciones devuelven null para get y throw
+// para set — así detectamos la falta de configuración sin depender de paquetes.
 
-const URL_  = process.env.KV_REST_API_URL;
-const TOKEN = process.env.KV_REST_API_TOKEN;
+const URL_  = process.env.UPSTASH_REDIS_REST_URL  || process.env.KV_REST_API_URL;
+const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
 export const KV_ENABLED = !!(URL_ && TOKEN);
 
