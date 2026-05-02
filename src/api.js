@@ -49,6 +49,7 @@ export const api = {
   me:    () => req('/auth/me'),
 
   // Datos
+  bootstrap: () => req('/bootstrap'),
   health:   () => req('/health'),
   products: () => req('/products'),
   clients:  () => req('/clients'),

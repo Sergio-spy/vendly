@@ -75,39 +75,40 @@ export default function App() {
   }, []);
 
   // Cuando hay comercial autenticado, cargamos los datos.
-  // Reintenta una vez si falla — protege contra cold-starts simultáneos
-  // de Vercel Functions y rate-limit puntual al autenticar en Odoo.
+  // Estrategia: una sola llamada a /api/bootstrap (una Function, una auth a
+  // Odoo). Si falla, reintenta con backoff hasta 3 veces antes de mostrar
+  // pantalla de error. Esto cubre tanto cold-starts como rebotes puntuales
+  // de Odoo SaaS.
   useEffect(() => {
     if (!salesman) return;
     let cancel = false;
-    const fetchAll = () => Promise.all([
-      api.health(), api.products(), api.clients(), api.tariffs(), api.promos(), api.orders(), api.families(),
-    ]);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
     (async () => {
-      let result;
-      try {
-        result = await fetchAll();
-      } catch {
-        await new Promise(r => setTimeout(r, 800));
+      const delays = [0, 800, 1800, 3500]; // 4 intentos: inmediato + 3 reintentos con backoff
+      let lastErr = null;
+      for (const d of delays) {
+        if (d) await sleep(d);
+        if (cancel) return;
         try {
-          result = await fetchAll();
+          const data = await api.bootstrap();
+          if (cancel) return;
+          setMode(data.health?.mode || 'odoo');
+          setHealth(data.health);
+          setProducts(data.products || []);
+          setClients(data.clients || []);
+          setTariffs(data.tariffs || []);
+          setPromos(data.promos || []);
+          setOrders(data.orders || []);
+          setFamilies(data.families || []);
+          setClient(null);
+          setCart({});
+          return; // OK
         } catch (e) {
-          if (!cancel) setError(e.message);
-          return;
+          lastErr = e;
         }
       }
-      if (cancel) return;
-      const [h, prods, cls, tfs, prs, ords, fams] = result;
-      setMode(h.mode);
-      setHealth(h);
-      setProducts(prods);
-      setClients(cls);
-      setTariffs(tfs);
-      setPromos(prs);
-      setOrders(ords);
-      setFamilies(fams);
-      setClient(null);
-      setCart({});
+      if (!cancel && lastErr) setError(lastErr.message);
     })();
     return () => { cancel = true; };
   }, [salesman]);
