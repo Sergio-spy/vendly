@@ -1,6 +1,7 @@
 import { MOCK_MODE, search_read, create } from './_lib/odoo.js';
 import { ORDERS } from './_lib/mock.js';
 import { mapOrder } from './_lib/mappers.js';
+import { attachDeliveryStatus } from './_lib/orders.js';
 import { requireComercial } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -17,8 +18,9 @@ export default async function handler(req, res) {
       if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
 
       const rows = await search_read('sale.order', domain,
-        ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids'],
+        ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids','picking_ids'],
         { limit: 200, order: 'date_order desc' });
+      await attachDeliveryStatus(rows);
       return res.status(200).json(rows.map(mapOrder));
     }
 

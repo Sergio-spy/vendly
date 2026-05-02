@@ -10,6 +10,7 @@
 import { MOCK_MODE, search_read } from './_lib/odoo.js';
 import { CLIENTS, ORDERS, PRODUCTS, PROMOS, TARIFFS } from './_lib/mock.js';
 import { mapOrder, mapPartner, mapPricelist, mapTemplate } from './_lib/mappers.js';
+import { attachDeliveryStatus } from './_lib/orders.js';
 import { resolveFamilies } from './_lib/families.js';
 import { requireComercial } from './_lib/auth.js';
 
@@ -76,7 +77,7 @@ export default async function handler(req, res) {
       search_read('product.pricelist', [['name','=ilike','Comercial%']],
         ['name','currency_id'], { limit: 50 }),
       search_read('sale.order', orderDomain,
-        ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids'],
+        ['name','partner_id','date_order','amount_total','state','invoice_status','order_line','invoice_ids','picking_ids'],
         { limit: 200, order: 'date_order desc' }),
       search_read('product.product', productCountsDomain, ['categ_id'], { limit: 5000 }),
       // loyalty.program — solo activos para el listado público.
@@ -135,6 +136,7 @@ export default async function handler(req, res) {
     });
 
     const tariffs = tariffRows.map(mapPricelist);
+    await attachDeliveryStatus(orderRows);
     const orders  = orderRows.map(mapOrder);
     const promos  = (promoRowsRaw || []).map(p => ({
       id:        `P${p.id}`,

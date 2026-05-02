@@ -20,9 +20,10 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
   const [busy, setBusy] = useState(false);
   const filt = orders.filter(o => filter==='all' || o.status===filter);
   const counts = {
-    all: orders.length,
-    borrador: orders.filter(o=>o.status==='borrador').length,
+    all:       orders.length,
+    borrador:  orders.filter(o=>o.status==='borrador').length,
     pendiente: orders.filter(o=>o.status==='pendiente').length,
+    fabricado: orders.filter(o=>o.status==='fabricado').length,
     facturado: orders.filter(o=>o.status==='facturado').length,
   };
   const refresh = async () => {
@@ -41,7 +42,7 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
         <button className="btn btn-primary" onClick={onNew}><Icon name="plus" size={14}/> Nuevo pedido</button>
       </div>
       <div className="hstack" style={{ gap: 8 }}>
-        {[['all','Todos'],['borrador','Borrador'],['pendiente','Pendientes'],['facturado','Facturados']].map(([k,l])=>(
+        {[['all','Todos'],['borrador','Borrador'],['pendiente','Pendientes'],['fabricado','Fabricados'],['facturado','Facturados']].map(([k,l])=>(
           <button key={k} className="chip chip-brand" data-active={String(filter===k)} onClick={()=>setFilter(k)}>
             {l} <span className="tabular muted-2" style={{ marginLeft: 4 }}>{counts[k]}</span>
           </button>
@@ -61,7 +62,7 @@ export function OrdersScreen({ orders = [], clients = [], onNew, onRefresh, onVi
                   <td className="muted tabular">{o.date}</td>
                   <td className="tabular">{o.lines}</td>
                   <td className="num bold tabular">{eur(o.total)}</td>
-                  <td><span className={`tag ${o.status==='facturado'?'tag-success':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span></td>
+                  <td><span className={`tag ${o.status==='facturado'?'tag-success':o.status==='fabricado'?'tag-info':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span></td>
                   <td onClick={e=>e.stopPropagation()} style={{ whiteSpace:'nowrap' }}>
                     <button className="btn btn-ghost btn-sm" title="Ver" onClick={()=>onView?.(o)}><Icon name="eye" size={14}/></button>
                     {canEdit && (

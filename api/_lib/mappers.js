@@ -102,23 +102,27 @@ export function mapPricelist(r) {
 }
 
 export function mapOrder(r) {
-  // Estado mostrado en la app:
+  // Estado mostrado en la app, en orden de prioridad:
   // - cancelado: state=cancel
-  // - borrador:  state=draft
-  // - facturado: invoice_status='invoiced' (la factura está emitida y completa)
-  // - pendiente: el resto (sent / sale aún no facturados)
+  // - borrador:  state=draft (presupuesto sin confirmar)
+  // - facturado: invoice_status='invoiced' (factura emitida y completa)
+  // - fabricado: todos los albaranes (stock.picking) en state='done'
+  //              → entregado pero aún sin facturar
+  // - pendiente: confirmado, ni fabricado ni facturado
   let status = 'pendiente';
-  if (r.state === 'cancel')                   status = 'cancelado';
-  else if (r.state === 'draft')               status = 'borrador';
-  else if (r.invoice_status === 'invoiced')   status = 'facturado';
+  if (r.state === 'cancel')                          status = 'cancelado';
+  else if (r.state === 'draft')                      status = 'borrador';
+  else if (r.invoice_status === 'invoiced')          status = 'facturado';
+  else if (r.__deliveryStatus === 'full')            status = 'fabricado';
   return {
-    id:         r.name,
-    odooId:     r.id,
-    client:     r.partner_id ? `C${String(r.partner_id[0]).padStart(2,'0')}` : '',
-    date:       (r.date_order || '').slice(0,10),
-    total:      r.amount_total || 0,
-    lines:      r.order_line?.length || 0,
+    id:             r.name,
+    odooId:         r.id,
+    client:         r.partner_id ? `C${String(r.partner_id[0]).padStart(2,'0')}` : '',
+    date:           (r.date_order || '').slice(0,10),
+    total:          r.amount_total || 0,
+    lines:          r.order_line?.length || 0,
     status,
-    invoiceIds: Array.isArray(r.invoice_ids) ? r.invoice_ids : [],
+    deliveryStatus: r.__deliveryStatus || null,
+    invoiceIds:     Array.isArray(r.invoice_ids) ? r.invoice_ids : [],
   };
 }
