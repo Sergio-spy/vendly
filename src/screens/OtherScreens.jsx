@@ -586,13 +586,29 @@ export function KpiScreen({ clients = [], products = [] }) {
   );
 }
 
-export function AdminScreen({ mode = 'mock' }) {
-  const sales = [
-    { name:'Ana Ribera', email:'aribera@vendly.com', zone:'Levante', clients:42, status:'activo' },
-    { name:'Pep Boronat', email:'pboronat@vendly.com', zone:'Costa Norte', clients:31, status:'activo' },
-    { name:'Lluís Tena', email:'ltena@vendly.com', zone:'Interior', clients:28, status:'activo' },
-    { name:'Marta Albert', email:'malbert@vendly.com', zone:'Costa Sur', clients:19, status:'inactivo' },
-  ];
+export function AdminScreen({ mode = 'mock', health = null, products = [], clients = [], tariffs = [], orders = [], promos = [], onRefresh }) {
+  const [sales, setSales] = useState([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  React.useEffect(() => {
+    let cancel = false;
+    setLoadingSales(true);
+    api.comerciales()
+      .then(d => { if (!cancel) setSales(d); })
+      .catch(() => { if (!cancel) setSales([]); })
+      .finally(() => { if (!cancel) setLoadingSales(false); });
+    return () => { cancel = true; };
+  }, []);
+
+  // Conteo de clientes por comercial usando su odooTagId.
+  // Como /api/clients del admin no incluye los tags por cliente, lo dejamos
+  // como '—' en lugar de inventar números.
+  const ymNow = new Date().toISOString().slice(0, 7);
+  const monthOrders = orders.filter(o => (o.date || '').startsWith(ymNow) && o.status !== 'borrador');
+  const expires = health?.apiKeyExpiresAt || null;
+  const daysLeft = health?.apiKeyDaysLeft;
+
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack">
@@ -600,47 +616,85 @@ export function AdminScreen({ mode = 'mock' }) {
         <div className="spacer"/>
         <span className={`tag ${mode==='odoo'?'tag-success':'tag-warn'}`}><Icon name="cloud" size={11}/> {mode==='odoo'?'Conectado a Odoo':'Modo mock — sin Odoo'}</span>
       </div>
+
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16 }}>
         <div className="card" style={{ padding: 0 }}>
           <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)' }} className="hstack">
             <div className="t-h2">Comerciales</div><div className="spacer"/>
-            <button className="btn btn-primary btn-sm"><Icon name="plus" size={14}/> Alta</button>
+            <button className="btn btn-primary btn-sm" disabled title="Para añadir un comercial: editar api/_lib/comerciales.js + scripts/hash-password.js"><Icon name="plus" size={14}/> Alta</button>
           </div>
           <table className="tbl">
-            <thead><tr><th>Nombre</th><th>Zona</th><th className="num">Clientes</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Zona</th><th>Etiqueta Odoo</th><th>Rol</th></tr></thead>
             <tbody>
               {sales.map(s => (
-                <tr key={s.email}>
-                  <td><div className="bold">{s.name}</div><div className="t-small">{s.email}</div></td>
-                  <td className="muted">{s.zone}</td>
-                  <td className="num tabular">{s.clients}</td>
-                  <td><span className={`tag ${s.status==='activo'?'tag-success':'tag-neutral'}`}>{s.status}</span></td>
+                <tr key={s.id}>
+                  <td><div className="bold">{s.name}</div><div className="t-small">{s.email || s.login}</div></td>
+                  <td className="muted">{s.zone || '—'}</td>
+                  <td className="tabular muted">{s.odooTagId ?? '—'}</td>
+                  <td><span className={`tag ${s.role==='admin'?'tag-info':'tag-neutral'}`}>{s.role}</span></td>
                 </tr>
               ))}
+              {sales.length === 0 && !loadingSales && (
+                <tr><td colSpan={4} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Sin comerciales</td></tr>
+              )}
+              {loadingSales && (
+                <tr><td colSpan={4} className="muted t-small" style={{ padding:'18px 22px', textAlign:'center' }}>Cargando…</td></tr>
+              )}
             </tbody>
           </table>
         </div>
+
         <div className="card" style={{ padding: 22 }}>
-          <div className="t-h2" style={{ marginBottom: 12 }}>Sincronización Odoo</div>
+          <div className="hstack" style={{ marginBottom: 12 }}>
+            <div className="t-h2">Sincronización Odoo</div>
+            <div className="spacer"/>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{ setNow(new Date()); onRefresh?.(); }}>
+              <Icon name="sync" size={14}/> Recargar
+            </button>
+          </div>
           <div className="vstack" style={{ gap: 10 }}>
             {[
-              ['Productos & precios', '124 art.', 'hace 8 min'],
-              ['Clientes', '187 cuentas', 'hace 22 min'],
-              ['Tarifas', '3 listas', 'hace 1h'],
-              ['Stock almacenes', '3 ubicaciones', 'tiempo real'],
-              ['Pedidos exportados', '38 este mes', 'hace 2 min'],
-            ].map(([k,v,t])=>(
+              ['Productos en catálogo', `${products.length} artículos`],
+              ['Clientes',              `${clients.length} cuentas`],
+              ['Tarifas',               `${tariffs.length} listas`],
+              ['Promociones activas',   `${promos.length} campañas`],
+              ['Pedidos cargados',      `${orders.length} en cola`],
+              ['Pedidos del mes',       `${monthOrders.length} confirmados`],
+            ].map(([k,v])=>(
               <div key={k} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)' }}>
                 <span className={`dot ${mode==='odoo'?'dot-success':'dot-neutral'}`}/>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{k}</div>
                   <div className="t-small">{v}</div>
                 </div>
-                <div className="t-small muted-2">{t}</div>
               </div>
             ))}
           </div>
-          <button className="btn btn-secondary" style={{ width:'100%', marginTop: 14 }}><Icon name="sync" size={14}/> Forzar sincronización completa</button>
+          <div className="t-small muted-2" style={{ marginTop: 12 }}>Última carga: {now.toLocaleTimeString('es-ES')}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 22 }}>
+        <div className="t-h2" style={{ marginBottom: 12 }}>API Key Odoo</div>
+        <div className="vstack" style={{ gap: 6 }}>
+          <div className="hstack"><span className="muted">Estado conexión</span><div className="spacer"/>
+            <span className={`tag ${health?.odooAuth==='ok'?'tag-success':'tag-danger'}`}>
+              {health?.odooAuth === 'ok' ? 'OK' : (health?.odooAuth === 'fail' ? 'Caída' : '—')}
+            </span>
+          </div>
+          {expires && (
+            <>
+              <div className="hstack"><span className="muted">Caducidad</span><div className="spacer"/><span className="tabular bold">{expires}</span></div>
+              <div className="hstack"><span className="muted">Días restantes</span><div className="spacer"/>
+                <span className={`tabular bold ${daysLeft != null && daysLeft <= 14 ? '' : ''}`} style={{ color: daysLeft != null && daysLeft <= 14 ? 'var(--warn)' : 'var(--ink-2)' }}>
+                  {daysLeft ?? '—'}
+                </span>
+              </div>
+            </>
+          )}
+          <div className="t-small muted" style={{ marginTop: 6 }}>
+            Si la API Key se revoca, actualiza <code>ODOO_API_KEY</code> en Vercel y redespliega.
+          </div>
         </div>
       </div>
     </div>

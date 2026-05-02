@@ -73,6 +73,9 @@ export const api = {
   // KPI: range = 'day' | 'month'
   kpi: (range = 'day') => req(`/kpi?range=${encodeURIComponent(range)}`),
 
+  // Comerciales (admin)
+  comerciales: () => req('/comerciales'),
+
   // Comparador de tarifas
   comparePricelists: (payload) => req('/pricelist-compare', { method:'POST', body: JSON.stringify(payload) }),
 

@@ -247,7 +247,13 @@ export default function App() {
           {route==='stock'     && <StockScreen products={products}/>}
           {route==='collect'   && <CollectScreen clients={clients}/>}
           {route==='kpi'       && <KpiScreen clients={clients} products={products}/>}
-          {route==='admin'     && <AdminScreen mode={mode}/>}
+          {route==='admin'     && <AdminScreen mode={mode} health={health} products={products} clients={clients} tariffs={tariffs} orders={orders} promos={promos} onRefresh={async()=>{
+            const data = await api.bootstrap();
+            setProducts(data.products || []); setClients(data.clients || []);
+            setTariffs(data.tariffs || []); setPromos(data.promos || []);
+            setOrders(data.orders || []); setFamilies(data.families || []);
+            setHealth(data.health);
+          }}/>}
           {route==='admin-promos' && <PromosAdmin onRefresh={async()=>{ const fresh = await api.promos(); setPromos(fresh); }}/>}
         </div>
       </div>
