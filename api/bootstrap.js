@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         'product_variant_count','product_variant_ids',
       ], { limit: 1000 }),
       search_read('res.partner', clientDomain, [
-        'name','ref','vat','city','street','street2','phone','mobile','email',
+        'name','ref','vat','city','street','street2','phone','email',
         'credit','credit_limit','total_invoiced',
         'property_product_pricelist','property_payment_term_id',
       ], { limit: 1000 }),

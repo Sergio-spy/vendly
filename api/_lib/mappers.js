@@ -23,7 +23,6 @@ export function mapPartner(r) {
     contact:        r.child_ids?.[0]?.name || r.name,
     phone:          r.phone || '',
     email:          r.email || '',
-    mobile:         r.mobile || '',
   };
 }
 
