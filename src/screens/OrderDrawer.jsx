@@ -81,9 +81,14 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
             <div className="divider" style={{ margin:'4px 0' }}/>
             <div className="hstack"><span style={{ fontWeight: 700 }}>Total</span><span className="spacer"/><span className="tabular" style={{ fontSize: 22, fontWeight: 700 }}>{eur(total)}</span></div>
           </div>
+          {!client && (
+            <div className="t-small" style={{ color:'var(--warn)', marginBottom: 10, padding: '8px 12px', background:'var(--warn-bg)', borderRadius:'var(--r-2)' }}>
+              ⚠ Selecciona un cliente antes de confirmar el pedido.
+            </div>
+          )}
           <div className="hstack" style={{ gap: 8 }}>
             <button className="btn btn-secondary" style={{ flex:1 }}>Guardar borrador</button>
-            <button className="btn btn-primary btn-lg" style={{ flex:2 }} onClick={onConfirm} disabled={lines.length===0}>
+            <button className="btn btn-primary btn-lg" style={{ flex:2 }} onClick={onConfirm} disabled={lines.length===0 || !client}>
               <Icon name="check" size={16}/> {editing ? 'Guardar cambios' : 'Confirmar pedido'}
             </button>
           </div>
