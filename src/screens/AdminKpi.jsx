@@ -8,7 +8,6 @@ const COLORS = ['#2a9d63', '#2473c5', '#c97a17', '#d64545', '#82d0a3', '#1d7f50'
 
 function ComercialChart({ co, color }) {
   const [hover, setHover] = useState(null); // { idx, x, y, value }
-  const [hostRect, setHostRect] = useState(null);
   const monthly = co.monthlyYear || Array(12).fill(0);
   const goal = co.goal?.monthly || 0;
   const max = Math.max(goal * 1.3, ...monthly, 1);
@@ -27,7 +26,7 @@ function ComercialChart({ co, color }) {
           <div className="tag" style={{ background: color + '15', color, fontWeight: 700 }}>{yearlyPct}% año</div>
         )}
       </div>
-      <div style={{ position: 'relative', height: 180 }} ref={el => el && setHostRect(el.getBoundingClientRect())}>
+      <div style={{ position: 'relative', height: 180 }}>
         <svg viewBox="0 0 320 110" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}
              onMouseLeave={() => setHover(null)}>
           {monthly.map((v, i) => {
@@ -56,7 +55,7 @@ function ComercialChart({ co, color }) {
             </>
           )}
         </svg>
-        {hover && hostRect && (
+        {hover && (
           <div style={{
             position: 'fixed',
             left: hover.x, top: hover.y - 12,
