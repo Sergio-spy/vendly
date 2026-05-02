@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon';
 import { api } from '../api';
 import { eur } from '../lib/format';
 
-const STATUS_LABEL = { borrador:'Borrador', pendiente:'Pendiente', fabricado:'Fabricado', facturado:'Facturado', cancelado:'Cancelado' };
+const STATUS_LABEL = { borrador:'Por confirmar', pendiente:'Pendiente', fabricado:'Fabricado', facturado:'Facturado', cancelado:'Cancelado' };
 
 export function OrderDetailModal({ order, onClose }) {
   const [data, setData] = useState(null);

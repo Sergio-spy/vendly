@@ -94,7 +94,7 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
                     <td className="muted">{o.date}</td>
                     <td className="num bold">{eur(o.total)}</td>
                     <td>
-                      <span className={`tag ${o.status==='facturado'?'tag-success':o.status==='fabricado'?'tag-info':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status}</span>
+                      <span className={`tag ${o.status==='facturado'?'tag-success':o.status==='fabricado'?'tag-info':o.status==='pendiente'?'tag-warn':'tag-neutral'}`}>{o.status==='borrador'?'por confirmar':o.status}</span>
                     </td>
                   </tr>
                 );
