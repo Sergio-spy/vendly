@@ -110,12 +110,12 @@ export default async function handler(req, res) {
           ['reconciled','=', false],
           ['parent_state','=','posted'],
         ],
-        ['partner_id','debit','credit','ref','name','move_name'],
+        ['partner_id','debit','credit','amount_residual','ref','name','move_name'],
         { limit: 5000 });
       for (const l of lines) {
         if (OPENING_RE.test(l.ref || '') || OPENING_RE.test(l.name || '') || OPENING_RE.test(l.move_name || '')) continue;
         const pid = Array.isArray(l.partner_id) ? l.partner_id[0] : l.partner_id;
-        const delta = (l.debit || 0) - (l.credit || 0);
+        const delta = l.amount_residual ?? ((l.debit || 0) - (l.credit || 0));
         balanceMap.set(pid, (balanceMap.get(pid) || 0) + delta);
       }
     }
