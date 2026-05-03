@@ -76,7 +76,8 @@ export default async function handler(req, res) {
       productRows, clientRows, tariffRows, orderRows, productCountRows, promoRowsRaw,
     ] = await Promise.all([
       search_read('product.template', productDomain, [
-        'name','default_code','barcode','list_price','qty_available','categ_id',
+        'name','default_code','barcode','x_studio_referencia',
+        'list_price','qty_available','categ_id',
         'product_variant_count','product_variant_ids',
       ], { limit: 1000 }),
       search_read('res.partner', clientDomain, [
@@ -142,7 +143,7 @@ export default async function handler(req, res) {
       variantIds.length
         ? search_read('product.product',
             [['id','in', variantIds]],
-            ['id','default_code','barcode'],
+            ['id','default_code','barcode','x_studio_referencia'],
             { limit: variantIds.length })
         : Promise.resolve([]),
     ]);
@@ -160,8 +161,8 @@ export default async function handler(req, res) {
         if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
         const v = variantInfoById.get(vId);
         if (v) {
-          if (!m.sku && v.default_code) m.sku = v.default_code;
-          if (!m.ean && v.barcode)       m.ean = v.barcode;
+          if (!m.sku) m.sku = v.x_studio_referencia || v.default_code || '';
+          if (!m.ean && v.barcode) m.ean = v.barcode;
         }
       }
       return m;

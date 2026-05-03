@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   if (MOCK_MODE) return res.status(200).json([]);
 
   try {
-    const fields = ['name','display_name','default_code','barcode','list_price','qty_available'];
+    const fields = ['name','display_name','default_code','barcode','x_studio_referencia','list_price','qty_available'];
     const rows = await search_read(
       'product.product',
       [['product_tmpl_id','=', templateId]],

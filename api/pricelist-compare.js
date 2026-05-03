@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     // 1) Templates con la primera variante (product.product) como representante.
     const templates = await search_read('product.template',
       [['id','in', templateIds]],
-      ['name','default_code','list_price','product_variant_ids'],
+      ['name','default_code','x_studio_referencia','list_price','product_variant_ids'],
       { limit: templateIds.length });
 
     const variantIdByTemplate = new Map();
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       products.push({
         templateId: t.id,
         name:       t.name,
-        sku:        t.default_code || '',
+        sku:        t.x_studio_referencia || t.default_code || '',
         pvp:        t.list_price || 0,
       });
     }

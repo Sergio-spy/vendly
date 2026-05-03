@@ -60,7 +60,9 @@ export function mapTemplate(r) {
     id:           `T${String(r.id).padStart(3,'0')}`,
     templateId:   r.id,
     odooId:       variantIds.length === 1 ? variantIds[0] : null, // solo si tiene una sola variante
-    sku:          r.default_code || '',
+    // En este Odoo la "Referencia" que ven los comerciales es un campo custom
+    // de Studio (`x_studio_referencia`). El default_code suele estar vacío.
+    sku:          r.x_studio_referencia || r.default_code || '',
     ean:          r.barcode || '',
     name:         r.name, // sin paréntesis de variante (display_name los trae)
     family:       r.categ_id?.[0] ?? null,
@@ -84,7 +86,7 @@ export function mapVariant(r) {
   return {
     id:        `V${String(r.id).padStart(3,'0')}`,
     odooId:    r.id,
-    sku:       r.default_code || '',
+    sku:       r.x_studio_referencia || r.default_code || '',
     ean:       r.barcode || '',
     name:      m ? dn.replace(/\s*\([^)]+\)\s*$/, '').trim() : dn,
     attrLabel: m ? m[1] : '', // ej. "Color: Azul, Tamaño: M"
