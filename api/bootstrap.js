@@ -46,13 +46,19 @@ export default async function handler(req, res) {
     const palosCategIds = new Set(
       fams.filter(f => f.key.startsWith('Palos Aluminio')).map(f => f.odooId)
     );
+    // El filtro 'agujero' no aplica a la subcategoría Anodizado (los anodizados
+    // se muestran todos, no solo los que tienen 'agujero' en el nombre).
+    const palosAgujeroCategIds = new Set(
+      fams.filter(f => f.key.startsWith('Palos Aluminio/') && !f.key.includes('Anodizado'))
+          .map(f => f.odooId)
+    );
 
     // 2) En paralelo: el resto de queries (todas reusan el uid ya cacheado).
     const productDomain = [['sale_ok','=',true]];
     if (familyIds.length) productDomain.push(['categ_id','in', familyIds]);
-    if (palosCategIds.size) {
+    if (palosAgujeroCategIds.size) {
       productDomain.push('|',
-        ['categ_id','not in', [...palosCategIds]],
+        ['categ_id','not in', [...palosAgujeroCategIds]],
         ['name','ilike','agujero']);
     }
 
@@ -122,13 +128,25 @@ export default async function handler(req, res) {
     }
 
     // Precios con la tarifa por defecto "Comercial PVP" (sin cliente al arrancar).
+    // Y aprovechamos para rellenar SKU/EAN desde la primera variante cuando el
+    // template los tiene vacíos (Odoo a veces los define solo a nivel variante).
     const variantByTemplate = new Map();
     for (const r of productRows) {
       const vId = (r.product_variant_ids || [])[0];
       if (vId) variantByTemplate.set(r.id, vId);
     }
+    const variantIds = [...variantByTemplate.values()];
     const defaultPricelistId = await resolvePricelistId(null);
-    const priceByVariant = await computePrices(defaultPricelistId, [...variantByTemplate.values()], null);
+    const [priceByVariant, variantInfoRows] = await Promise.all([
+      computePrices(defaultPricelistId, variantIds, null),
+      variantIds.length
+        ? search_read('product.product',
+            [['id','in', variantIds]],
+            ['id','default_code','barcode'],
+            { limit: variantIds.length })
+        : Promise.resolve([]),
+    ]);
+    const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
 
     // Mapeos finales.
     const products = productRows.map(r => {
@@ -138,7 +156,14 @@ export default async function handler(req, res) {
         m.odooId = m.variantIds[0];
       }
       const vId = variantByTemplate.get(r.id);
-      if (vId && priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+      if (vId) {
+        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+        const v = variantInfoById.get(vId);
+        if (v) {
+          if (!m.sku && v.default_code) m.sku = v.default_code;
+          if (!m.ean && v.barcode)       m.ean = v.barcode;
+        }
+      }
       return m;
     });
 

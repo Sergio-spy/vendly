@@ -18,20 +18,25 @@ export default async function handler(req, res) {
     const fams = resolveFamilies(cats).filter(f => f.odooId != null);
     const familyIds = fams.map(f => f.odooId);
 
-    // Categorías de "Palos Aluminio" — para esos productos:
-    //   1) Solo se muestran los que llevan "agujero" en el nombre.
-    //   2) Se tratan como single-variant (no se enseña selector de variantes).
+    // Categorías de "Palos Aluminio":
+    //   - TODAS se tratan como single-variant en el catálogo (no selector).
+    //   - El filtro "agujero" en el nombre solo aplica a las NO-Anodizadas
+    //     (ECO/PRO Empuñaduras/Plastificado). En Anodizado se muestran todos.
     const palosCategIds = new Set(
       fams.filter(f => f.key.startsWith('Palos Aluminio')).map(f => f.odooId)
     );
+    const palosAgujeroCategIds = new Set(
+      fams.filter(f => f.key.startsWith('Palos Aluminio/') && !f.key.includes('Anodizado'))
+          .map(f => f.odooId)
+    );
 
     // Dominio Odoo: sale_ok=true AND categ_id IN families
-    //   AND (categ_id NOT IN palos OR name ILIKE 'agujero')
+    //   AND (categ_id NOT IN palosNoAnodizados OR name ILIKE 'agujero')
     const domain = [['sale_ok','=',true]];
     if (familyIds.length) domain.push(['categ_id','in', familyIds]);
-    if (palosCategIds.size) {
+    if (palosAgujeroCategIds.size) {
       domain.push('|',
-        ['categ_id','not in', [...palosCategIds]],
+        ['categ_id','not in', [...palosAgujeroCategIds]],
         ['name','ilike','agujero']);
     }
 
@@ -45,13 +50,25 @@ export default async function handler(req, res) {
     // Aplicar tarifa: del cliente si viene partnerId, si no la default ("Comercial PVP").
     const partnerId = parseInt(req.query?.partnerId, 10) || null;
     const pricelistId = await resolvePricelistId(partnerId);
-    // Tomamos la primera variante de cada template como representante para el precio.
+    // Tomamos la primera variante de cada template como representante para el precio
+    // y para rellenar SKU/EAN si el template los tiene vacíos (ocurre cuando solo
+    // están definidos a nivel de variante).
     const variantByTemplate = new Map();
     for (const r of rows) {
       const vId = (r.product_variant_ids || [])[0];
       if (vId) variantByTemplate.set(r.id, vId);
     }
-    const priceByVariant = await computePrices(pricelistId, [...variantByTemplate.values()], partnerId);
+    const variantIds = [...variantByTemplate.values()];
+    const [priceByVariant, variantInfoRows] = await Promise.all([
+      computePrices(pricelistId, variantIds, partnerId),
+      variantIds.length
+        ? search_read('product.product',
+            [['id','in', variantIds]],
+            ['id','default_code','barcode'],
+            { limit: variantIds.length })
+        : Promise.resolve([]),
+    ]);
+    const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
 
     const items = rows.map(r => {
       const m = mapTemplate(r);
@@ -61,7 +78,14 @@ export default async function handler(req, res) {
         m.odooId = m.variantIds[0];
       }
       const vId = variantByTemplate.get(r.id);
-      if (vId && priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+      if (vId) {
+        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+        const v = variantInfoById.get(vId);
+        if (v) {
+          if (!m.sku && v.default_code) m.sku = v.default_code;
+          if (!m.ean && v.barcode)       m.ean = v.barcode;
+        }
+      }
       return m;
     });
     res.status(200).json(items);

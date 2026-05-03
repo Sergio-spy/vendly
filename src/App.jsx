@@ -302,7 +302,7 @@ export default function App() {
           if (pendingNewOrder) { setPendingNewOrder(false); setRoute('catalog'); }
         }}/>
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
-      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client}/>
+      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client} tariffName={client?.tariff || 'Comercial PVP'}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
     </div>
   );
