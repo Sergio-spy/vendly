@@ -12,7 +12,7 @@ const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulo
 // - Si tiene >1 variante: descarga las variantes desde /api/product-variants y
 //   muestra una lista, cada una con su propio stepper. El carrito guarda la
 //   variante elegida con su nombre y atributos.
-export function ProductModal({ product, onClose, cart = {}, updateCartQty, tariff, tariffMult = {}, showStock = false }) {
+export function ProductModal({ product, onClose, cart = {}, updateCartQty, tariff, tariffMult = {}, showStock = false, client = null }) {
   const p = product;
   const isMulti = p ? (p.variantCount ?? 1) > 1 : false;
   const singleVariantIdLocal = p ? (p.odooId ?? p.id) : null;
@@ -27,7 +27,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
     setErrorVariants(null);
     (async () => {
       try {
-        const data = await api.variants(p.templateId);
+        const data = await api.variants(p.templateId, client?.odooId);
         if (!cancel) setVariants(data);
       } catch (e) {
         if (!cancel) setErrorVariants(e.message);
@@ -36,7 +36,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
       }
     })();
     return () => { cancel = true; };
-  }, [p?.templateId, isMulti]);
+  }, [p?.templateId, isMulti, client?.odooId]);
 
   if (!p) return null;
   const price = p.pvp * (tariffMult[tariff] || 1);

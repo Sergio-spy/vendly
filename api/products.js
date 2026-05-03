@@ -3,6 +3,7 @@ import { PRODUCTS } from './_lib/mock.js';
 import { mapTemplate } from './_lib/mappers.js';
 import { resolveFamilies } from './_lib/families.js';
 import { requireComercial } from './_lib/auth.js';
+import { resolvePricelistId, computePrices } from './_lib/pricing.js';
 
 // Devuelve un artículo (product.template) por línea — las variantes se eligen
 // en el modal del producto, no en el catálogo principal.
@@ -40,6 +41,18 @@ export default async function handler(req, res) {
       'product_variant_count', 'product_variant_ids',
     ];
     const rows = await search_read('product.template', domain, fields, { limit: 1000 });
+
+    // Aplicar tarifa: del cliente si viene partnerId, si no la default ("Comercial PVP").
+    const partnerId = parseInt(req.query?.partnerId, 10) || null;
+    const pricelistId = await resolvePricelistId(partnerId);
+    // Tomamos la primera variante de cada template como representante para el precio.
+    const variantByTemplate = new Map();
+    for (const r of rows) {
+      const vId = (r.product_variant_ids || [])[0];
+      if (vId) variantByTemplate.set(r.id, vId);
+    }
+    const priceByVariant = await computePrices(pricelistId, [...variantByTemplate.values()], partnerId);
+
     const items = rows.map(r => {
       const m = mapTemplate(r);
       // Para palos aluminio: forzar single-variant (la primera variante)
@@ -47,6 +60,8 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
+      const vId = variantByTemplate.get(r.id);
+      if (vId && priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
       return m;
     });
     res.status(200).json(items);

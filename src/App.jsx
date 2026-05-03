@@ -126,6 +126,23 @@ export default function App() {
     document.documentElement.setAttribute('data-density', density);
   }, [density]);
 
+  // Cuando cambia el cliente seleccionado, recargamos los productos para que
+  // los precios reflejen la tarifa del cliente (property_product_pricelist).
+  // Sin cliente → tarifa por defecto "Comercial PVP" del backend.
+  // Saltamos la primera ejecución: bootstrap ya cargó productos con la default.
+  useEffect(() => {
+    if (!salesman || products.length === 0) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const fresh = await api.products(client?.odooId);
+        if (!cancel) setProducts(fresh);
+      } catch { /* mantenemos los productos previos */ }
+    })();
+    return () => { cancel = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client?.odooId]);
+
   const tariffMult = useMemo(() => buildTariffMult(tariffs), [tariffs]);
   const tariff = client?.tariff || 'T2';
   // Cart entries: { [variantOdooId]: { qty, templateId, name, attrLabel?, price, sku, ean?, color?, glyph? } }
@@ -285,7 +302,7 @@ export default function App() {
           if (pendingNewOrder) { setPendingNewOrder(false); setRoute('catalog'); }
         }}/>
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
-      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'}/>
+      <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
     </div>
   );

@@ -58,7 +58,7 @@ export const api = {
   // Datos
   bootstrap: () => req('/bootstrap'),
   health:   () => req('/health'),
-  products: () => req('/products'),
+  products: (partnerId) => req(`/products${partnerId ? `?partnerId=${encodeURIComponent(partnerId)}` : ''}`),
   clients:  () => req('/clients'),
   tariffs:  () => req('/tariffs'),
   promos:   () => req('/promos'),
@@ -68,7 +68,7 @@ export const api = {
   families: () => req('/families'),
 
   // Variantes de un product.template
-  variants: (templateId) => req(`/product-variants?templateId=${encodeURIComponent(templateId)}`),
+  variants: (templateId, partnerId) => req(`/product-variants?templateId=${encodeURIComponent(templateId)}${partnerId ? `&partnerId=${encodeURIComponent(partnerId)}` : ''}`),
 
   // KPI: range = 'day' | 'month'
   kpi: (range = 'day') => req(`/kpi?range=${encodeURIComponent(range)}`),

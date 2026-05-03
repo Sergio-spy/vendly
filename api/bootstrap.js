@@ -14,6 +14,7 @@ import { attachDeliveryStatus } from './_lib/orders.js';
 import { resolveFamilies } from './_lib/families.js';
 import { kvGet } from './_lib/kv.js';
 import { requireComercial } from './_lib/auth.js';
+import { resolvePricelistId, computePrices } from './_lib/pricing.js';
 
 const OPENING_RE = /apertura|opening/i;
 
@@ -120,6 +121,15 @@ export default async function handler(req, res) {
       }
     }
 
+    // Precios con la tarifa por defecto "Comercial PVP" (sin cliente al arrancar).
+    const variantByTemplate = new Map();
+    for (const r of productRows) {
+      const vId = (r.product_variant_ids || [])[0];
+      if (vId) variantByTemplate.set(r.id, vId);
+    }
+    const defaultPricelistId = await resolvePricelistId(null);
+    const priceByVariant = await computePrices(defaultPricelistId, [...variantByTemplate.values()], null);
+
     // Mapeos finales.
     const products = productRows.map(r => {
       const m = mapTemplate(r);
@@ -127,6 +137,8 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
+      const vId = variantByTemplate.get(r.id);
+      if (vId && priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
       return m;
     });
 

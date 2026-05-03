@@ -5,6 +5,7 @@
 import { MOCK_MODE, search_read } from './_lib/odoo.js';
 import { mapVariant } from './_lib/mappers.js';
 import { requireComercial } from './_lib/auth.js';
+import { resolvePricelistId, computePrices } from './_lib/pricing.js';
 
 export default async function handler(req, res) {
   if (!(await requireComercial(req, res))) return;
@@ -21,7 +22,17 @@ export default async function handler(req, res) {
       fields,
       { limit: 200 }
     );
-    res.status(200).json(rows.map(mapVariant));
+
+    const partnerId = parseInt(req.query?.partnerId, 10) || null;
+    const pricelistId = await resolvePricelistId(partnerId);
+    const priceByVariant = await computePrices(pricelistId, rows.map(r => r.id), partnerId);
+
+    const variants = rows.map(r => {
+      const m = mapVariant(r);
+      if (priceByVariant.has(r.id)) m.pvp = priceByVariant.get(r.id);
+      return m;
+    });
+    res.status(200).json(variants);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
