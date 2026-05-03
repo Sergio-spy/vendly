@@ -6,6 +6,7 @@
 
 import { MOCK_MODE, search_read, call } from './_lib/odoo.js';
 import { requireComercial } from './_lib/auth.js';
+import { computePrices } from './_lib/pricing.js';
 
 export default async function handler(req, res) {
   if (!(await requireComercial(req, res))) return;
@@ -48,23 +49,10 @@ export default async function handler(req, res) {
     for (const tId of templateIds) prices[tId] = {};
 
     if (variantIds.length) {
-      // Una llamada por pricelist es lo más fiable para la API JSON-RPC.
       for (const plId of pricelistIds) {
-        try {
-          const result = await call('product.pricelist', '_compute_price_rule', [[plId], variantIds, 1, false]);
-          // El shape puede venir { plistId: { variantId: [price,rule] } } o directamente { variantId: [price,rule] }
-          // según versión Odoo. Normalizamos buscando la primera capa que mapee a number→[price,rule].
-          let vmap = result?.[plId] ?? result;
-          if (vmap && typeof vmap === 'object') {
-            for (const [tId, vId] of variantIdByTemplate.entries()) {
-              const entry = vmap[vId];
-              const price = Array.isArray(entry) ? entry[0] : (typeof entry === 'number' ? entry : null);
-              if (price != null) prices[tId][plId] = price;
-            }
-          }
-        } catch (e) {
-          // Si _compute_price_rule no existe (Odoo viejo) o falla, dejamos hueco.
-          console.warn('[pricelist-compare] fallo _compute_price_rule', plId, e.message);
+        const priceByVariant = await computePrices(plId, variantIds, null);
+        for (const [tId, vId] of variantIdByTemplate.entries()) {
+          if (priceByVariant.has(vId)) prices[tId][plId] = priceByVariant.get(vId);
         }
       }
     }
