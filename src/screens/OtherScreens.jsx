@@ -330,36 +330,43 @@ function PricelistComparator({ products = [], tariffs = [] }) {
           <div className="t-small">Pulsa "Elegir artículos" para añadir y comparar precios entre tarifas.</div>
         </div>
       ) : (
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>Artículo</th>
-              <th className="num">PVP</th>
-              {tariffs.map(t => <th key={t.id} className="num">{t.name}</th>)}
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {matrix.products.map(p => (
-              <tr key={p.templateId}>
-                <td><div className="bold">{p.name}</div><div className="t-small">{p.sku}</div></td>
-                <td className="num tabular muted">{eur(p.pvp)}</td>
-                {tariffs.map(t => {
-                  const price = matrix.prices?.[p.templateId]?.[t.odooId];
-                  return <td key={t.id} className="num tabular bold">{price != null ? eur(price) : '—'}</td>;
-                })}
-                <td>
-                  <button className="btn btn-ghost btn-sm" title="Quitar" onClick={()=>togglePick(p.templateId)}>
-                    <Icon name="x" size={14}/>
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {loading && (
-              <tr><td colSpan={tariffs.length + 3} className="muted t-small" style={{ textAlign:'center', padding:'12px 22px' }}>Cargando precios…</td></tr>
-            )}
-          </tbody>
-        </table>
+        (() => {
+          // Si todos los productos tienen PVP a 0 (Odoo configurado para que las
+          // tarifas calculen sobre coste), ocultamos la columna PVP.
+          const showPvp = matrix.products.some(p => (p.pvp || 0) > 0);
+          return (
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Artículo</th>
+                  {showPvp && <th className="num">PVP</th>}
+                  {tariffs.map(t => <th key={t.id} className="num">{t.name}</th>)}
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.products.map(p => (
+                  <tr key={p.templateId}>
+                    <td><div className="bold">{p.name}</div><div className="t-small">{p.sku}</div></td>
+                    {showPvp && <td className="num tabular muted">{eur(p.pvp)}</td>}
+                    {tariffs.map(t => {
+                      const price = matrix.prices?.[p.templateId]?.[t.odooId];
+                      return <td key={t.id} className="num tabular bold">{price != null ? eur(price) : '—'}</td>;
+                    })}
+                    <td>
+                      <button className="btn btn-ghost btn-sm" title="Quitar" onClick={()=>togglePick(p.templateId)}>
+                        <Icon name="x" size={14}/>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {loading && (
+                  <tr><td colSpan={tariffs.length + (showPvp ? 3 : 2)} className="muted t-small" style={{ textAlign:'center', padding:'12px 22px' }}>Cargando precios…</td></tr>
+                )}
+              </tbody>
+            </table>
+          );
+        })()
       )}
 
       {pickerOpen && (

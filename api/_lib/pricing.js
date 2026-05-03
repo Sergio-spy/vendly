@@ -7,15 +7,14 @@
 //   API remota para que Odoo devuelva el precio aplicado de una pricelist.
 //   Solución: leemos las reglas (`product.pricelist.item`) y las aplicamos en JS.
 //
-// Cobertura actual: la única configuración usada en producción es una regla
-// global (`applied_on='3_global'`) por tarifa, con `compute_price='formula'`,
-// `base='standard_price' | 'list_price' | 'pricelist'` y `price_discount`,
-// `price_surcharge`, `price_round`, `price_min_margin`, `price_max_margin`.
-// También se soportan reglas con scope (`1_product`, `0_product_variant`,
-// `2_product_category`) y `compute_price='fixed' | 'percentage'` para cubrir
-// expansiones futuras sin tocar este archivo.
+// Cobertura:
+// - Scope: applied_on '3_global' / '2_product_category' / '1_product' / '0_product_variant'
+// - compute_price: 'fixed' / 'percentage' / 'formula'
+// - base: 'list_price' / 'standard_price' / 'pricelist' (encadenada con base_pricelist_id)
+// - Modificadores formula: price_discount, price_surcharge, price_round, price_min_margin, price_max_margin
+// - Filtros: min_quantity, date_start, date_end
 
-import { search_read, call } from './odoo.js';
+import { search_read } from './odoo.js';
 
 const DEFAULT_PRICELIST_NAME = 'Comercial PVP';
 
@@ -79,21 +78,8 @@ function ruleMatches(rule, product, qty = 1) {
   }
 }
 
-// Aplica una regla a un producto y devuelve el precio resultante.
-function applyRule(rule, product, qty, baseResolver) {
-  // Base sobre la que aplica la fórmula
-  let base;
-  switch (rule.base) {
-    case 'standard_price': base = product.standard_price ?? 0; break;
-    case 'pricelist':
-      // No soportado en profundidad (pricelist encadenada). Caemos a list_price.
-      base = product.list_price ?? 0;
-      break;
-    case 'list_price':
-    default:
-      base = product.list_price ?? 0;
-  }
-
+// Aplica una regla a un producto, dada la `base` ya resuelta.
+function applyRule(rule, base) {
   let price;
   switch (rule.compute_price) {
     case 'fixed':
@@ -107,10 +93,8 @@ function applyRule(rule, product, qty, baseResolver) {
       const discount = rule.price_discount || 0;
       const surcharge = rule.price_surcharge || 0;
       price = base * (1 - discount / 100) + surcharge;
-      // Redondeo (price_round = step)
       const step = rule.price_round || 0;
       if (step) price = Math.round(price / step) * step;
-      // Márgenes
       if (rule.price_min_margin) price = Math.max(price, base + rule.price_min_margin);
       if (rule.price_max_margin) price = Math.min(price, base + rule.price_max_margin);
       break;
@@ -119,21 +103,57 @@ function applyRule(rule, product, qty, baseResolver) {
   return price;
 }
 
+// Encuentra la regla aplicable de una pricelist a un producto. null si no hay.
+function pickRule(items, product, qty = 1) {
+  // Orden: las reglas más específicas primero (la primera que matchee gana).
+  const specificity = { '0_product_variant': 0, '1_product': 1, '2_product_category': 2, '3_global': 3 };
+  const ordered = [...items].sort((a,b) => (specificity[a.applied_on] ?? 9) - (specificity[b.applied_on] ?? 9));
+  return ordered.find(r => ruleMatches(r, product, qty)) || null;
+}
+
+// Resuelve el precio de un producto contra una pricelist. Soporta pricelists
+// encadenadas (base='pricelist' con base_pricelist_id) con guardia anti-ciclos.
+async function priceForProduct(pricelistId, product, qty = 1, visited = new Set()) {
+  if (visited.has(pricelistId)) {
+    console.warn('[pricing] ciclo de pricelists detectado en', pricelistId);
+    return null;
+  }
+  visited.add(pricelistId);
+  const items = await getPricelistItems(pricelistId);
+  if (!items.length) return null;
+  const rule = pickRule(items, product, qty);
+  if (!rule) return null;
+
+  // Resuelve la base
+  let base;
+  if (rule.base === 'standard_price') {
+    base = product.standard_price ?? 0;
+  } else if (rule.base === 'pricelist') {
+    const childPlId = Array.isArray(rule.base_pricelist_id) ? rule.base_pricelist_id[0] : null;
+    if (childPlId) {
+      const childPrice = await priceForProduct(childPlId, product, qty, visited);
+      base = childPrice ?? 0;
+    } else {
+      // Sin base_pricelist_id pese a base='pricelist' → fallback a list_price.
+      base = product.list_price ?? 0;
+    }
+  } else {
+    // 'list_price' o desconocido
+    base = product.list_price ?? 0;
+  }
+  return applyRule(rule, base);
+}
+
 // Calcula precios aplicando la pricelist a una lista de product.product (variantIds).
 // Devuelve Map<variantId, price>.
 export async function computePrices(pricelistId, variantIds, partnerId = null) {
   const map = new Map();
   if (!pricelistId || !variantIds?.length) return map;
   try {
-    const [items, products] = await Promise.all([
-      getPricelistItems(pricelistId),
-      search_read('product.product',
-        [['id','in', variantIds]],
-        ['id','product_tmpl_id','categ_id','standard_price','list_price'],
-        { limit: variantIds.length }),
-    ]);
-    if (!items.length) return map;
-    // Normalizamos relacionales m2o ([id,name]) a número.
+    const products = await search_read('product.product',
+      [['id','in', variantIds]],
+      ['id','product_tmpl_id','categ_id','standard_price','list_price'],
+      { limit: variantIds.length });
     const normProducts = products.map(p => ({
       id: p.id,
       product_tmpl_id: Array.isArray(p.product_tmpl_id) ? p.product_tmpl_id[0] : p.product_tmpl_id,
@@ -141,13 +161,8 @@ export async function computePrices(pricelistId, variantIds, partnerId = null) {
       standard_price: p.standard_price || 0,
       list_price: p.list_price || 0,
     }));
-    // Orden: las reglas más específicas primero (la primera que matchee gana).
-    const specificity = { '0_product_variant': 0, '1_product': 1, '2_product_category': 2, '3_global': 3 };
-    const ordered = [...items].sort((a,b) => (specificity[a.applied_on] ?? 9) - (specificity[b.applied_on] ?? 9));
     for (const p of normProducts) {
-      const rule = ordered.find(r => ruleMatches(r, p, 1));
-      if (!rule) continue;
-      const price = applyRule(rule, p, 1);
+      const price = await priceForProduct(pricelistId, p, 1);
       if (typeof price === 'number') map.set(p.id, price);
     }
   } catch (e) {
