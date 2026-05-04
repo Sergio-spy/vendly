@@ -22,8 +22,13 @@ if (typeof window !== 'undefined') {
 export function getOnlineState() { return _state; }
 export function onOnlineChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 export function setOnlineFromError(err) {
-  // Si una request falla con TypeError (fetch failed = sin red), marcamos offline.
-  if (err && (err.name === 'TypeError' || /fetch|network|failed/i.test(err.message || ''))) {
+  // Si una request falla por red (cubre los mensajes de Chrome/Safari/Firefox),
+  // marcamos offline. "Load failed" en Safari, "Failed to fetch" en Chrome,
+  // "NetworkError when attempting to fetch resource." en Firefox.
+  if (!err) return;
+  if (err.name === 'TypeError') { setState('offline'); return; }
+  const m = String(err.message || err).toLowerCase();
+  if (/failed to fetch|networkerror|network error|load failed|fetch failed|no internet/.test(m)) {
     setState('offline');
   }
 }

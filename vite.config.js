@@ -95,6 +95,12 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Hot updates: nuevos SW toman control inmediatamente sin cerrar la
+        // PWA. Es lo que queremos en una app interna donde cada deploy debe
+        // llegar al iPad sin pasos manuales.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             // Datos del catálogo / clientes / tarifas: stale-while-revalidate

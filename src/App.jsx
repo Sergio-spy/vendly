@@ -224,40 +224,55 @@ export default function App() {
       pricelistId: tariffs.find(t=>t.id===tariff)?.odooId || null,
       lines: lines.map(([variantId, e]) => ({ productId: Number(variantId), qty: e.qty })),
     };
-    try {
-      if (editingOrderId) {
-        await api.updateOrder(editingOrderId, payload);
-      } else {
-        await api.createOrder(payload);
+
+    // Detector unificado de fallo de red (cubre Chrome, Safari, Firefox).
+    const isNetworkError = (e) => {
+      if (!e) return false;
+      if (e.name === 'TypeError') return true; // fetch failed nativo
+      const m = String(e.message || e).toLowerCase();
+      return /failed to fetch|networkerror|network error|load failed|fetch failed|no internet|sin conex/.test(m);
+    };
+
+    // Atajo: si ya sabemos que estamos offline, ni intentamos. Encolamos directo.
+    const skipNetwork = !online || (typeof navigator !== 'undefined' && navigator.onLine === false);
+
+    let createOk = false;
+    let createError = null;
+    if (!skipNetwork) {
+      try {
+        if (editingOrderId) await api.updateOrder(editingOrderId, payload);
+        else                await api.createOrder(payload);
+        createOk = true;
+      } catch (e) {
+        createError = e;
       }
-      const fresh = await api.orders();
-      setOrders(fresh);
-    } catch (e) {
-      // Si el fallo es de red, encolamos el pedido en la outbox local y
-      // avisamos al comercial. El sync lo subirá cuando vuelva la conexión.
-      const isNetwork = e?.name === 'TypeError' || /fetch|network|failed/i.test(e?.message || '');
-      if (isNetwork) {
-        try {
-          await outboxAdd({
-            payload,
-            mode: editingOrderId ? 'update' : 'create',
-            orderId: editingOrderId || null,
-          });
-          alert('Sin conexión: pedido guardado localmente. Se subirá automáticamente cuando vuelva la conexión.');
-          setCart({});
-          setClient(null);
-          setEditingOrderId(null);
-          setOrderOpen(false);
-          setRoute('orders');
-          return;
-        } catch (err) {
-          alert('No se pudo guardar el pedido offline: ' + err.message);
-          return;
-        }
-      }
-      alert('No se pudo guardar el pedido: ' + e.message);
-      return;
     }
+
+    // Si la red falló (o estábamos offline desde el principio) → outbox.
+    if (!createOk) {
+      if (createError && !isNetworkError(createError)) {
+        // Error de servidor (validación, 4xx, 5xx). No encolamos: se ha
+        // recibido una respuesta clara del backend.
+        alert('No se pudo guardar el pedido: ' + createError.message);
+        return;
+      }
+      try {
+        await outboxAdd({
+          payload,
+          mode: editingOrderId ? 'update' : 'create',
+          orderId: editingOrderId || null,
+        });
+        alert('Sin conexión: pedido guardado localmente. Se subirá automáticamente cuando vuelva la conexión.');
+      } catch (err) {
+        alert('No se pudo guardar el pedido offline: ' + (err?.message || err));
+        return;
+      }
+    } else {
+      // Si subimos OK, refrescamos la lista de pedidos en background. Que
+      // este refresh falle no afecta al éxito del pedido.
+      api.orders().then(setOrders).catch(() => {});
+    }
+
     setCart({});
     setClient(null);
     setEditingOrderId(null);
