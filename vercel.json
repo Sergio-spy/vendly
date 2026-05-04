@@ -7,6 +7,6 @@
     "api/order-pdf.js": { "includeFiles": "api/_assets/**" }
   },
   "rewrites": [
-    { "source": "/((?!api).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|.*\\.).*)", "destination": "/index.html" }
   ]
 }
