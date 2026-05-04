@@ -5,10 +5,11 @@
 import { MOCK_MODE, search_read } from './_lib/odoo.js';
 import { mapVariant } from './_lib/mappers.js';
 import { requireComercial } from './_lib/auth.js';
-import { resolvePricelistId, computePrices } from './_lib/pricing.js';
+import { resolvePricelistId, computePrices, getComercialPvpId, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
 
 export default async function handler(req, res) {
-  if (!(await requireComercial(req, res))) return;
+  const c = await requireComercial(req, res);
+  if (!c) return;
   const templateId = parseInt(req.query?.templateId, 10);
   if (!templateId) return res.status(400).json({ error: 'Falta templateId' });
 
@@ -24,12 +25,18 @@ export default async function handler(req, res) {
     );
 
     const partnerId = parseInt(req.query?.partnerId, 10) || null;
-    const pricelistId = await resolvePricelistId(partnerId);
+    const [pricelistId, pvpId] = await Promise.all([
+      resolvePricelistId(partnerId),
+      getComercialPvpId(),
+    ]);
     const priceByVariant = await computePrices(pricelistId, rows.map(r => r.id), partnerId);
+    // Recargo de visualización si la tarifa aplicada es Comercial PVP y el usuario no es admin.
+    const inflate = c.role !== 'admin' && pricelistId && pvpId && pricelistId === pvpId;
+    const markup = inflate ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
 
     const variants = rows.map(r => {
       const m = mapVariant(r);
-      if (priceByVariant.has(r.id)) m.pvp = priceByVariant.get(r.id);
+      if (priceByVariant.has(r.id)) m.pvp = priceByVariant.get(r.id) * markup;
       return m;
     });
     res.status(200).json(variants);

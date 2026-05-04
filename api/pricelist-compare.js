@@ -6,10 +6,11 @@
 
 import { MOCK_MODE, search_read, call } from './_lib/odoo.js';
 import { requireComercial } from './_lib/auth.js';
-import { computePrices } from './_lib/pricing.js';
+import { computePrices, getComercialPvpId, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
 
 export default async function handler(req, res) {
-  if (!(await requireComercial(req, res))) return;
+  const c = await requireComercial(req, res);
+  if (!c) return;
   if (req.method !== 'POST') return res.status(405).end();
 
   const templateIds  = (req.body?.templateIds  || []).map(n => parseInt(n,10)).filter(Boolean);
@@ -49,10 +50,14 @@ export default async function handler(req, res) {
     for (const tId of templateIds) prices[tId] = {};
 
     if (variantIds.length) {
+      const pvpId = await getComercialPvpId();
       for (const plId of pricelistIds) {
         const priceByVariant = await computePrices(plId, variantIds, null);
+        // Solo Comercial PVP se infla un 15% para no-admin (las otras tarifas
+        // son las que el comercial vende a sus clientes y deben verse reales).
+        const markup = (c.role !== 'admin' && plId === pvpId) ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
         for (const [tId, vId] of variantIdByTemplate.entries()) {
-          if (priceByVariant.has(vId)) prices[tId][plId] = priceByVariant.get(vId);
+          if (priceByVariant.has(vId)) prices[tId][plId] = priceByVariant.get(vId) * markup;
         }
       }
     }

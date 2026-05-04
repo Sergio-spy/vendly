@@ -14,7 +14,7 @@ import { attachDeliveryStatus } from './_lib/orders.js';
 import { resolveFamilies } from './_lib/families.js';
 import { kvGet } from './_lib/kv.js';
 import { requireComercial } from './_lib/auth.js';
-import { resolvePricelistId, computePrices } from './_lib/pricing.js';
+import { resolvePricelistId, computePrices, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
 
 const OPENING_RE = /apertura|opening/i;
 
@@ -138,6 +138,9 @@ export default async function handler(req, res) {
     }
     const variantIds = [...variantByTemplate.values()];
     const defaultPricelistId = await resolvePricelistId(null);
+    // En bootstrap siempre se usa Comercial PVP (sin cliente). Si el usuario
+    // no es admin, se aplica el recargo de visualización del 15%.
+    const markup = c.role !== 'admin' ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
     const [priceByVariant, variantInfoRows] = await Promise.all([
       computePrices(defaultPricelistId, variantIds, null),
       variantIds.length
@@ -158,7 +161,7 @@ export default async function handler(req, res) {
       }
       const vId = variantByTemplate.get(r.id);
       if (vId) {
-        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId) * markup;
         const v = variantInfoById.get(vId);
         if (v) {
           if (!m.sku) m.sku = v.x_studio_referencia || v.default_code || '';

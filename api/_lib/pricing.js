@@ -30,6 +30,15 @@ async function getDefaultPricelistId() {
   return _defaultPricelistIdPromise;
 }
 
+// Recargo aplicado sobre el precio de Comercial PVP cuando lo solicita un
+// comercial (no admin). El comercial NO debe ver el PVP real con el que la
+// empresa vende directo a clientes finales.
+export const COMERCIAL_PVP_MARKUP_FOR_SALES = 1.15;
+
+// Expone el id de la tarifa por defecto ("Comercial PVP") para que los
+// handlers puedan decidir si aplicar el recargo de visualización.
+export const getComercialPvpId = () => getDefaultPricelistId();
+
 // Devuelve el pricelistId a aplicar para un partnerId dado (o el default si no hay).
 export async function resolvePricelistId(partnerId) {
   if (partnerId) {

@@ -3,12 +3,13 @@ import { PRODUCTS } from './_lib/mock.js';
 import { mapTemplate } from './_lib/mappers.js';
 import { resolveFamilies } from './_lib/families.js';
 import { requireComercial } from './_lib/auth.js';
-import { resolvePricelistId, computePrices } from './_lib/pricing.js';
+import { resolvePricelistId, computePrices, getComercialPvpId, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
 
 // Devuelve un artículo (product.template) por línea — las variantes se eligen
 // en el modal del producto, no en el catálogo principal.
 export default async function handler(req, res) {
-  if (!(await requireComercial(req, res))) return;
+  const c = await requireComercial(req, res);
+  if (!c) return;
   try {
     if (MOCK_MODE) return res.status(200).json(PRODUCTS);
 
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
       if (vId) variantByTemplate.set(r.id, vId);
     }
     const variantIds = [...variantByTemplate.values()];
-    const [priceByVariant, variantInfoRows] = await Promise.all([
+    const [priceByVariant, variantInfoRows, pvpId] = await Promise.all([
       computePrices(pricelistId, variantIds, partnerId),
       variantIds.length
         ? search_read('product.product',
@@ -67,8 +68,13 @@ export default async function handler(req, res) {
             ['id','default_code','barcode','x_studio_referencia'],
             { limit: variantIds.length })
         : Promise.resolve([]),
+      getComercialPvpId(),
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
+    // Recargo de visualización: si la tarifa aplicada es Comercial PVP y el
+    // usuario NO es admin, ocultamos el PVP real subiéndolo un 15%.
+    const inflate = c.role !== 'admin' && pricelistId && pvpId && pricelistId === pvpId;
+    const markup = inflate ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
 
     const items = rows.map(r => {
       const m = mapTemplate(r);
@@ -79,7 +85,7 @@ export default async function handler(req, res) {
       }
       const vId = variantByTemplate.get(r.id);
       if (vId) {
-        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId);
+        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId) * markup;
         const v = variantInfoById.get(vId);
         if (v) {
           if (!m.sku) m.sku = v.x_studio_referencia || v.default_code || '';
