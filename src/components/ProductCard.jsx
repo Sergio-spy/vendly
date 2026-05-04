@@ -31,6 +31,16 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
   const lowStock = p.stock > 0 && p.stock < 20;
   const noStock = p.stock === 0;
   const active = qty > 0;
+  // Si el producto tiene packaging (caja de N), el stepper de la tarjeta opera
+  // en CAJAS: cada +/- mueve N unidades del carrito y el input muestra cuántas
+  // cajas hay. El total de unidades sigue viviendo en `qty`.
+  const pkgQty = p.packaging?.qty || 1;
+  const boxesView = pkgQty > 1 ? Math.floor(qty / pkgQty) : qty;
+  const inputDisplay = boxesView;
+  const onPlus  = () => setQty(qty + pkgQty);
+  const onMinus = () => setQty(Math.max(0, qty - pkgQty));
+  const onInput = (n) => setQty(Math.max(0, Number.isFinite(n) ? n : 0) * pkgQty);
+  const initialAdd = () => setQty(pkgQty);
 
   return (
     <article className="prod-card-hero" onClick={onOpen}>
@@ -69,12 +79,12 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
             </button>
           ) : active ? (
             <div className="stepper active lg">
-              <button onClick={() => setQty(Math.max(0, qty - 1))}><Icon name="minus" size={14}/></button>
-              <input value={qty} onChange={e => setQty(Math.max(0, parseInt(e.target.value)||0))}/>
-              <button onClick={() => setQty(qty + 1)} disabled={showStock && noStock}><Icon name="plus" size={14}/></button>
+              <button onClick={onMinus}><Icon name="minus" size={14}/></button>
+              <input value={inputDisplay} onChange={e => onInput(parseInt(e.target.value)||0)}/>
+              <button onClick={onPlus} disabled={showStock && noStock}><Icon name="plus" size={14}/></button>
             </div>
           ) : (
-            <button className="qty-add" style={{ height: 40, width: 40 }} onClick={() => setQty(1)} disabled={showStock && noStock}>
+            <button className="qty-add" style={{ height: 40, width: 40 }} onClick={initialAdd} disabled={showStock && noStock} title={pkgQty > 1 ? `Añadir ${p.packaging.name.toLowerCase()} (${pkgQty} ud)` : 'Añadir 1 ud'}>
               <Icon name="plus" size={18}/>
             </button>
           )}
@@ -90,6 +100,13 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
   const lowStock = p.stock > 0 && p.stock < 20;
   // Si no se muestra stock, escondemos esa columna entera del grid.
   const cols = showStock ? '48px 1fr 110px 90px 130px' : '48px 1fr 110px 130px';
+  // Stepper en cajas (mismo patrón que ProductCard).
+  const pkgQty = p.packaging?.qty || 1;
+  const inputDisplay = pkgQty > 1 ? Math.floor(qty / pkgQty) : qty;
+  const onPlus  = () => setQty(qty + pkgQty);
+  const onMinus = () => setQty(Math.max(0, qty - pkgQty));
+  const onInput = (n) => setQty(Math.max(0, Number.isFinite(n) ? n : 0) * pkgQty);
+  const initialAdd = () => setQty(pkgQty);
   return (
     <div className="card" style={{ padding: 'var(--d-pad-row) 14px', display:'grid', gridTemplateColumns: cols, alignItems:'center', gap: 14, cursor:'pointer' }} onClick={onOpen}>
       <div className="prod-img" style={{ width: 48, height: 48 }}>
@@ -122,13 +139,13 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
           </button>
         ) : qty > 0 ? (
           <div className="stepper active">
-            <button onClick={() => setQty(Math.max(0, qty - 1))}><Icon name="minus" size={14}/></button>
-            <input value={qty} onChange={e => setQty(Math.max(0, parseInt(e.target.value)||0))}/>
-            <button onClick={() => setQty(qty + 1)}><Icon name="plus" size={14}/></button>
+            <button onClick={onMinus}><Icon name="minus" size={14}/></button>
+            <input value={inputDisplay} onChange={e => onInput(parseInt(e.target.value)||0)}/>
+            <button onClick={onPlus}><Icon name="plus" size={14}/></button>
           </div>
         ) : (
-          <button className="btn btn-secondary btn-sm" onClick={() => setQty(1)}>
-            <Icon name="plus" size={14}/> Añadir
+          <button className="btn btn-secondary btn-sm" onClick={initialAdd}>
+            <Icon name="plus" size={14}/> {pkgQty > 1 ? `Añadir caja (${pkgQty})` : 'Añadir'}
           </button>
         )}
       </div>
