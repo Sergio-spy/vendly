@@ -10,40 +10,39 @@ export default async function handler(req, res) {
   const templateId = parseInt(req.query?.templateId, 10);
   if (!templateId) return res.status(400).json({ error: 'Falta templateId' });
 
-  // 1) fields_get: busca campos relacionados con caja/packaging/embalaje
-  const tplFields = await call('product.template', 'fields_get', [], { attributes: ['string','type','relation'] });
-  const candidates = Object.entries(tplFields).filter(([name, meta]) => {
-    const label = (meta.string || '').toLowerCase();
-    return /pack|caja|box|emball|emball|embalaj|qty_avail|uom|unidad/.test(name)
-        || /caja|paquete|empaqu|embalaj|unidad/.test(label)
-        || name.startsWith('x_');
-  }).map(([name, meta]) => ({ name, label: meta.string, type: meta.type, relation: meta.relation }));
+  const out = { templateId, steps: {} };
 
-  // 2) Lee el template con esos campos + uom + packaging_ids
-  const fields = ['id','name','uom_id','uom_po_id','packaging_ids',
-    ...candidates.map(c => c.name)];
-  const uniqFields = [...new Set(fields)];
-  const [tpl] = await search_read('product.template', [['id','=', templateId]], uniqFields, { limit: 1 });
+  try {
+    const tplFields = await call('product.template', 'fields_get', [], { attributes: ['string','type','relation'] });
+    out.steps.fields_get = 'ok';
+    const candidates = Object.entries(tplFields).filter(([name, meta]) => {
+      const label = (meta.string || '').toLowerCase();
+      return /pack|caja|box|emball|embalaj|uom|unidad/.test(name)
+          || /caja|paquete|empaqu|embalaj|unidad/.test(label)
+          || name.startsWith('x_');
+    }).map(([name, meta]) => ({ name, label: meta.string, type: meta.type, relation: meta.relation }));
+    out.candidates = candidates;
+    out.has_packaging_ids = 'packaging_ids' in tplFields;
 
-  // 3) Si tiene packaging_ids, los leemos
-  let packagings = null;
-  let packagingFields = null;
-  if (Array.isArray(tpl?.packaging_ids) && tpl.packaging_ids.length) {
-    try {
-      packagingFields = await call('product.packaging', 'fields_get', [], { attributes: ['string','type'] });
-    } catch (e) { packagingFields = { error: e.message }; }
-    try {
-      packagings = await search_read('product.packaging', [['id','in', tpl.packaging_ids]],
-        ['id','name','qty','barcode'],
-        { limit: 50 });
-    } catch (e) { packagings = { error: e.message }; }
+    // Lee solo campos seguros (saltando los que no existen)
+    const safeFieldNames = ['id','name','uom_id','uom_po_id', ...candidates.map(c => c.name).filter(n => n in tplFields)];
+    if ('packaging_ids' in tplFields) safeFieldNames.push('packaging_ids');
+    const uniqFields = [...new Set(safeFieldNames)];
+    const tplRows = await search_read('product.template', [['id','=', templateId]], uniqFields, { limit: 1 });
+    out.steps.template_read = 'ok';
+    out.template = tplRows[0] || null;
+
+    if (out.template?.packaging_ids?.length) {
+      try {
+        out.packagings = await search_read('product.packaging', [['id','in', out.template.packaging_ids]],
+          ['id','name','qty','barcode'],
+          { limit: 50 });
+      } catch (e) { out.packagings_error = e.message; }
+    }
+  } catch (e) {
+    out.error = e.message;
+    out.stack = e.stack;
   }
 
-  res.status(200).json({
-    template: tpl,
-    candidate_fields_in_template: candidates,
-    packagings,
-    packaging_fields_available: packagingFields ? Object.keys(packagingFields).slice(0,40) : null,
-    note: 'Si packaging_ids != [] → es estándar Odoo (product.packaging). Si packaging_ids = [] pero un x_studio_* tiene un número como 14 → campo custom.',
-  });
+  res.status(200).json(out);
 }
