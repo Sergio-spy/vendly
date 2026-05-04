@@ -1,6 +1,8 @@
 // Wrapper de fetch para los endpoints /api/*.
 // Maneja el token de sesión (Bearer en localStorage).
 
+import { setOnlineFromError, setOnlineFromSuccess } from './lib/online';
+
 const TOKEN_KEY = 'vendly_token';
 
 export const auth = {
@@ -14,7 +16,14 @@ async function req(path, opts = {}) {
   const token = auth.getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const r = await fetch(`/api${path}`, { ...opts, headers });
+  let r;
+  try {
+    r = await fetch(`/api${path}`, { ...opts, headers });
+  } catch (e) {
+    setOnlineFromError(e);
+    throw e;
+  }
+  setOnlineFromSuccess();
 
   if (r.status === 401) {
     auth.clear();

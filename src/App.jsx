@@ -9,10 +9,14 @@ import { ClientPicker } from './screens/ClientPicker';
 import { OrderDrawer } from './screens/OrderDrawer';
 import { ProductModal } from './screens/ProductModal';
 import { OrderDetailModal } from './screens/OrderDetailModal';
+import { OutboxModal } from './screens/OutboxModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
 import { PromosAdmin } from './screens/PromosAdmin';
 import { AdminKpi } from './screens/AdminKpi';
 import { api, auth } from './api';
+import { cacheGet, cacheSet, outboxAdd, outboxCountPending, onOutboxChange } from './lib/db';
+import { startAutoSync } from './lib/sync';
+import { useOnline } from './lib/online';
 
 function buildTariffMult(tariffs) {
   const map = {};
@@ -98,17 +102,9 @@ export default function App() {
         try {
           const data = await api.bootstrap();
           if (cancel) return;
-          setMode(data.health?.mode || 'odoo');
-          setHealth(data.health);
-          setProducts(data.products || []);
-          setClients(data.clients || []);
-          setTariffs(data.tariffs || []);
-          setPromos(data.promos || []);
-          setOrders(data.orders || []);
-          setFamilies(data.families || []);
-          setMyGoal(data.myGoal || null);
-          setClient(null);
-          setCart({});
+          applyBootstrap(data);
+          // Persistimos snapshot para arranque offline en futuras sesiones.
+          cacheSet('bootstrap', data).catch(() => {});
           if (salesman.role === 'admin') {
             api.comerciales().then(setComerciales).catch(() => setComerciales([]));
           }
@@ -117,10 +113,57 @@ export default function App() {
           lastErr = e;
         }
       }
-      if (!cancel && lastErr) setError(lastErr.message);
+      // Si todos los reintentos fallaron, intentamos cargar el snapshot offline.
+      if (!cancel) {
+        const snap = await cacheGet('bootstrap').catch(() => null);
+        if (snap) {
+          applyBootstrap(snap);
+          setError(null);
+          return;
+        }
+        if (lastErr) setError(lastErr.message);
+      }
     })();
     return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [salesman]);
+
+  // Helper: aplica datos del bootstrap a los estados (reusable para snapshot).
+  function applyBootstrap(data) {
+    setMode(data.health?.mode || 'odoo');
+    setHealth(data.health);
+    setProducts(data.products || []);
+    setClients(data.clients || []);
+    setTariffs(data.tariffs || []);
+    setPromos(data.promos || []);
+    setOrders(data.orders || []);
+    setFamilies(data.families || []);
+    setMyGoal(data.myGoal || null);
+    setClient(null);
+    setCart({});
+  }
+
+  // Arranca el sincronizador automático de outbox al montar la app.
+  useEffect(() => {
+    startAutoSync();
+  }, []);
+
+  // Cuenta de pedidos pendientes en la outbox (para el indicador del Topbar).
+  const online = useOnline();
+  const [outboxOpen, setOutboxOpen] = useState(false);
+  const [pendingOutbox, setPendingOutbox] = useState(0);
+  useEffect(() => {
+    let cancel = false;
+    const refresh = async () => {
+      try {
+        const n = await outboxCountPending();
+        if (!cancel) setPendingOutbox(n);
+      } catch {}
+    };
+    refresh();
+    const off = onOutboxChange(refresh);
+    return () => { cancel = true; off(); };
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-density', density);
@@ -190,6 +233,28 @@ export default function App() {
       const fresh = await api.orders();
       setOrders(fresh);
     } catch (e) {
+      // Si el fallo es de red, encolamos el pedido en la outbox local y
+      // avisamos al comercial. El sync lo subirá cuando vuelva la conexión.
+      const isNetwork = e?.name === 'TypeError' || /fetch|network|failed/i.test(e?.message || '');
+      if (isNetwork) {
+        try {
+          await outboxAdd({
+            payload,
+            mode: editingOrderId ? 'update' : 'create',
+            orderId: editingOrderId || null,
+          });
+          alert('Sin conexión: pedido guardado localmente. Se subirá automáticamente cuando vuelva la conexión.');
+          setCart({});
+          setClient(null);
+          setEditingOrderId(null);
+          setOrderOpen(false);
+          setRoute('orders');
+          return;
+        } catch (err) {
+          alert('No se pudo guardar el pedido offline: ' + err.message);
+          return;
+        }
+      }
       alert('No se pudo guardar el pedido: ' + e.message);
       return;
     }
@@ -256,12 +321,14 @@ export default function App() {
           title={titles[route]}
           client={client}
           setClientPickerOpen={setPickerOpen}
-          online={true}
+          online={online}
           lastSync={mode === 'odoo' ? 'Odoo · live' : 'modo mock'}
           orderTotal={orderTotal}
           orderLines={lines.length}
           onOpenOrder={()=>setOrderOpen(true)}
           onToggleSidebar={toggleCollapsed}
+          pendingOutbox={pendingOutbox}
+          onOpenOutbox={()=>setOutboxOpen(true)}
         />
         <ApiKeyBanner health={health} isAdmin={salesman.role==='admin'}/>
         <div className="app-content">
@@ -304,6 +371,7 @@ export default function App() {
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} onChangeClient={()=>setPickerOpen(true)} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
       <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client} tariffName={client?.tariff || 'Comercial PVP'}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
+      <OutboxModal open={outboxOpen} onClose={()=>setOutboxOpen(false)} clients={clients}/>
     </div>
   );
 }

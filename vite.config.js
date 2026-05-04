@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
@@ -64,5 +65,69 @@ function apiMiddleware() {
 }
 
 export default defineConfig({
-  plugins: [react(), apiMiddleware()],
+  plugins: [
+    react(),
+    apiMiddleware(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // Habilitamos el SW también en dev para poder probar offline en local.
+      devOptions: { enabled: false },
+      includeAssets: ['favicon.svg', 'logo.svg'],
+      manifest: {
+        name: 'Vendly · Palomatic',
+        short_name: 'Vendly',
+        description: 'Catálogo y pedidos para el equipo comercial',
+        theme_color: '#222222',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // No cachees el shell de las funciones serverless con SW: muchas son
+        // mutaciones y autenticadas. Cacheamos selectivamente con runtimeCaching.
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        runtimeCaching: [
+          {
+            // Datos del catálogo / clientes / tarifas: stale-while-revalidate
+            // permite arrancar offline con la última copia.
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/api/bootstrap')   ||
+              url.pathname.startsWith('/api/products')    ||
+              url.pathname.startsWith('/api/clients')     ||
+              url.pathname.startsWith('/api/tariffs')     ||
+              url.pathname.startsWith('/api/orders')      ||
+              url.pathname.startsWith('/api/families')    ||
+              url.pathname.startsWith('/api/promos')      ||
+              url.pathname.startsWith('/api/product-variants'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'vendly-api-data',
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Imágenes de producto: cache-first con TTL largo.
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/product-image'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'vendly-product-images',
+              expiration: { maxEntries: 800, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
+  ],
 })

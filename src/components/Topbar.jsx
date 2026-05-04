@@ -1,7 +1,10 @@
 import { Icon } from './Icon';
 import { eur } from '../lib/format';
 
-export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, onToggleSidebar }) {
+export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, onToggleSidebar, pendingOutbox = 0, onOpenOutbox }) {
+  // Estado del badge de conectividad: prioriza informar de pedidos pendientes.
+  const offline = !online;
+  const showWarn = offline || pendingOutbox > 0;
   return (
     <header className="topbar">
       {onToggleSidebar && (
@@ -10,8 +13,19 @@ export function Topbar({ title, client, setClientPickerOpen, online, lastSync, o
         </button>
       )}
       <div className="tb-title">{title}</div>
-      <span className="tag tag-neutral t-num tb-sync" style={{ marginLeft: 6 }}>
-        <Icon name={online ? 'cloud' : 'wifi-off'} size={12}/> {online ? 'Sincronizado' : 'Offline'} · {lastSync}
+      <span
+        className={`tag t-num tb-sync ${showWarn ? 'tag-warn' : 'tag-neutral'}`}
+        style={{ marginLeft: 6, cursor: pendingOutbox > 0 ? 'pointer' : 'default' }}
+        onClick={() => { if (pendingOutbox > 0 && onOpenOutbox) onOpenOutbox(); }}
+        title={pendingOutbox > 0 ? 'Hay pedidos pendientes de subir — pulsa para verlos' : undefined}
+      >
+        <Icon name={offline ? 'wifi-off' : (pendingOutbox > 0 ? 'sync' : 'cloud')} size={12}/>
+        {' '}
+        {offline
+          ? `Offline${pendingOutbox > 0 ? ` · ${pendingOutbox} en cola` : ''}`
+          : pendingOutbox > 0
+            ? `Subiendo · ${pendingOutbox}`
+            : `Sincronizado · ${lastSync}`}
       </span>
       <div className="tb-spacer"/>
 
