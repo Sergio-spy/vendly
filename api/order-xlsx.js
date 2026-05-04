@@ -7,6 +7,10 @@ import { requireComercial } from './_lib/auth.js';
 import { COMPANY, FOOTER_LEGEND } from './_lib/company.js';
 
 const fmtDate = (s) => (s || '').slice(0, 10).split('-').reverse().join('/');
+const STATE_LABEL = {
+  draft: 'Borrador', sent: 'Presupuesto enviado',
+  sale: 'Confirmado', done: 'Cerrado', cancel: 'Cancelado',
+};
 
 export default async function handler(req, res) {
   if (!(await requireComercial(req, res))) return;
@@ -80,7 +84,7 @@ export default async function handler(req, res) {
       row++;
     };
     setKV('Fecha:',       fmtDate(o.date_order));
-    setKV('Estado:',      o.state || '');
+    setKV('Estado:',      STATE_LABEL[o.state] || o.state || '');
     if (o.client_order_ref) setKV('Ref. cliente:', o.client_order_ref);
     if (o.pricelist_id?.[1]) setKV('Tarifa:', o.pricelist_id[1]);
 

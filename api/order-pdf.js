@@ -15,6 +15,10 @@ const LOGO_PATH = path.join(__dirname, '_assets', 'palomatic_logo.png');
 
 const eur = (n) => new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n || 0);
 const fmtDate = (s) => (s || '').slice(0, 10).split('-').reverse().join('/');
+const STATE_LABEL = {
+  draft: 'Borrador', sent: 'Presupuesto enviado',
+  sale: 'Confirmado', done: 'Cerrado', cancel: 'Cancelado',
+};
 
 export default async function handler(req, res) {
   if (!(await requireComercial(req, res))) return;
@@ -81,7 +85,7 @@ export default async function handler(req, res) {
     doc.font('Helvetica-Bold').text('Fecha:', col1X, cursorY, labelStyle);
     doc.font('Helvetica').text(fmtDate(o.date_order), col1X + 60, cursorY, valueStyle);
     doc.font('Helvetica-Bold').text('Estado:', col2X, cursorY);
-    doc.font('Helvetica').text(o.state || '', col2X + 60, cursorY);
+    doc.font('Helvetica').text(STATE_LABEL[o.state] || o.state || '', col2X + 60, cursorY);
     cursorY += 16;
 
     if (o.client_order_ref) {
