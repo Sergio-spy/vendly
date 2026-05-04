@@ -43,9 +43,10 @@ export default async function handler(req, res) {
     // Si Odoo 18+ usa uom_ids como packaging
     if (out.template?.uom_ids?.length) {
       try {
-        out.uoms = await search_read('uom.uom', [['id','in', out.template.uom_ids]],
-          ['id','name','factor','factor_inv','category_id','rounding','active'],
-          { limit: 50 });
+        const uomFields = await call('uom.uom', 'fields_get', [], { attributes: ['string','type'] });
+        out.uom_field_names = Object.keys(uomFields);
+        // Pedimos todos los campos no-binary (devuelve todo)
+        out.uoms = await search_read('uom.uom', [['id','in', out.template.uom_ids]], [], { limit: 50 });
       } catch (e) { out.uoms_error = e.message; }
     }
   } catch (e) {
