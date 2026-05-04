@@ -4,6 +4,7 @@ import { mapTemplate } from './_lib/mappers.js';
 import { resolveFamilies } from './_lib/families.js';
 import { requireComercial } from './_lib/auth.js';
 import { resolvePricelistId, computePrices, getComercialPvpId, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
+import { resolvePackagings } from './_lib/packaging.js';
 
 // Devuelve un artículo (product.template) por línea — las variantes se eligen
 // en el modal del producto, no en el catálogo principal.
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
       'name', 'default_code', 'barcode', 'x_studio_referencia',
       'list_price', 'qty_available', 'categ_id',
       'product_variant_count', 'product_variant_ids',
+      'uom_ids', // Odoo 18+ usa uom_ids como packaging
     ];
     const rows = await search_read('product.template', domain, fields, { limit: 1000 });
 
@@ -60,7 +62,7 @@ export default async function handler(req, res) {
       if (vId) variantByTemplate.set(r.id, vId);
     }
     const variantIds = [...variantByTemplate.values()];
-    const [priceByVariant, variantInfoRows, pvpId] = await Promise.all([
+    const [priceByVariant, variantInfoRows, pvpId, packagingByTpl] = await Promise.all([
       computePrices(pricelistId, variantIds, partnerId),
       variantIds.length
         ? search_read('product.product',
@@ -69,6 +71,7 @@ export default async function handler(req, res) {
             { limit: variantIds.length })
         : Promise.resolve([]),
       getComercialPvpId(),
+      resolvePackagings(rows),
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
     // Recargo de visualización: si la tarifa aplicada es Comercial PVP y el
@@ -92,6 +95,8 @@ export default async function handler(req, res) {
           if (!m.ean && v.barcode) m.ean = v.barcode;
         }
       }
+      const pkg = packagingByTpl.get(r.id);
+      if (pkg) m.packaging = pkg; // { name, qty }
       return m;
     });
     res.status(200).json(items);

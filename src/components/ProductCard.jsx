@@ -50,6 +50,11 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
           </div>
           <div className="hero-name">{p.name}</div>
           <div className="hero-price">{eur(price)}</div>
+          {p.packaging && (
+            <div className="t-tiny" style={{ color:'var(--ink-3)', marginTop: 2 }}>
+              📦 {p.packaging.name} · <span className="tabular">{eur(price * p.packaging.qty)}</span>
+            </div>
+          )}
           {showStock && (
             <div className="hero-stock" style={{ color: lowStock ? 'var(--warn)' : noStock ? 'var(--danger)' : 'var(--ink-4)' }}>
               <span className={`dot ${lowStock?'dot-warn':noStock?'dot-danger':'dot-success'}`} style={{ display:'inline-block', marginRight:6, verticalAlign:'middle' }}/>
@@ -97,6 +102,11 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
           {p.ean && <>EAN: <span className="tabular">{p.ean}</span></>}
         </div>
         <div style={{ fontWeight: 600, fontSize: 'var(--d-fs-title)' }}>{p.name}</div>
+        {p.packaging && (
+          <div className="t-tiny" style={{ color:'var(--ink-3)' }}>
+            📦 {p.packaging.name} · <span className="tabular">{eur(price * p.packaging.qty)}</span>
+          </div>
+        )}
       </div>
       <div className="tabular" style={{ fontWeight: 700 }}>{eur(price)}</div>
       {showStock && (

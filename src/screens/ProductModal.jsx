@@ -81,6 +81,11 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
               <div style={{ gridColumn: 'span 2' }}>
                 <div className="t-tiny">PRECIO {(tariffName || 'COMERCIAL PVP').toUpperCase()}</div>
                 <div className="tabular bold" style={{ fontSize: 22, color: 'var(--brand-700)' }}>{eur(price)}</div>
+                {p.packaging && (
+                  <div className="t-small" style={{ color: 'var(--ink-3)', marginTop: 4 }}>
+                    📦 {p.packaging.name} · <span className="tabular">{eur(price * p.packaging.qty)}</span>
+                  </div>
+                )}
               </div>
               {showStock && (
                 <div>
@@ -91,15 +96,22 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
             </div>
 
             {!isMulti ? (
-              <div className="hstack" style={{ gap: 10, marginTop: 8 }}>
-                <div className="stepper lg">
-                  <button onClick={()=>setSingleQty(Math.max(0,singleQty-1))}><Icon name="minus" size={16}/></button>
-                  <input value={singleQty} onChange={e=>setSingleQty(Math.max(0,parseInt(e.target.value)||0))}/>
-                  <button onClick={()=>setSingleQty(singleQty+1)}><Icon name="plus" size={16}/></button>
+              <div className="vstack" style={{ gap: 8, marginTop: 8 }}>
+                <div className="hstack" style={{ gap: 10 }}>
+                  <div className="stepper lg">
+                    <button onClick={()=>setSingleQty(Math.max(0,singleQty-1))}><Icon name="minus" size={16}/></button>
+                    <input value={singleQty} onChange={e=>setSingleQty(Math.max(0,parseInt(e.target.value)||0))}/>
+                    <button onClick={()=>setSingleQty(singleQty+1)}><Icon name="plus" size={16}/></button>
+                  </div>
+                  <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleQty===0) setSingleQty(1); onClose(); }}>
+                    <Icon name="cart" size={16}/> {singleQty===0?'Añadir al pedido':'Actualizar pedido'}
+                  </button>
                 </div>
-                <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleQty===0) setSingleQty(1); onClose(); }}>
-                  <Icon name="cart" size={16}/> {singleQty===0?'Añadir al pedido':'Actualizar pedido'}
-                </button>
+                {p.packaging && (
+                  <button className="btn btn-secondary btn-sm" onClick={()=>setSingleQty(singleQty + p.packaging.qty)} style={{ alignSelf:'flex-start' }}>
+                    <Icon name="plus" size={14}/> Añadir caja ({p.packaging.qty} ud)
+                  </button>
+                )}
               </div>
             ) : (
               <div>

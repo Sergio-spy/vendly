@@ -75,6 +75,9 @@ export function mapTemplate(r) {
     glyph:        glyphFor(categName),
     variantCount: r.product_variant_count || variantIds.length,
     variantIds,
+    // packaging se rellena después leyendo uom.uom (Odoo 18+ usa uom_ids como
+    // packaging — un many2many a uom.uom con relative_factor = uds por caja).
+    packaging:    null, // { name, qty } cuando aplica
   };
 }
 

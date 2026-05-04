@@ -15,6 +15,7 @@ import { resolveFamilies } from './_lib/families.js';
 import { kvGet } from './_lib/kv.js';
 import { requireComercial } from './_lib/auth.js';
 import { resolvePricelistId, computePrices, COMERCIAL_PVP_MARKUP_FOR_SALES } from './_lib/pricing.js';
+import { resolvePackagings } from './_lib/packaging.js';
 
 const OPENING_RE = /apertura|opening/i;
 
@@ -79,6 +80,7 @@ export default async function handler(req, res) {
         'name','default_code','barcode','x_studio_referencia',
         'list_price','qty_available','categ_id',
         'product_variant_count','product_variant_ids',
+        'uom_ids',
       ], { limit: 1000 }),
       search_read('res.partner', clientDomain, [
         'name','ref','vat','city','street','street2','phone','email',
@@ -141,7 +143,7 @@ export default async function handler(req, res) {
     // En bootstrap siempre se usa Comercial PVP (sin cliente). Si el usuario
     // no es admin, se aplica el recargo de visualización del 15%.
     const markup = c.role !== 'admin' ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
-    const [priceByVariant, variantInfoRows] = await Promise.all([
+    const [priceByVariant, variantInfoRows, packagingByTpl] = await Promise.all([
       computePrices(defaultPricelistId, variantIds, null),
       variantIds.length
         ? search_read('product.product',
@@ -149,6 +151,7 @@ export default async function handler(req, res) {
             ['id','default_code','barcode','x_studio_referencia'],
             { limit: variantIds.length })
         : Promise.resolve([]),
+      resolvePackagings(productRows),
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
 
@@ -168,6 +171,8 @@ export default async function handler(req, res) {
           if (!m.ean && v.barcode) m.ean = v.barcode;
         }
       }
+      const pkg = packagingByTpl.get(r.id);
+      if (pkg) m.packaging = pkg; // { name, qty }
       return m;
     });
 
