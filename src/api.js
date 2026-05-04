@@ -36,6 +36,20 @@ export function orderInvoiceUrl(orderOdooId) {
   return `/api/order-invoice?orderId=${orderOdooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
 }
 
+// URL del PDF del pedido (presupuesto / detalle estilo Palomatic).
+export function orderPdfUrl(orderOdooId) {
+  if (!orderOdooId) return null;
+  const t = auth.getToken();
+  return `/api/order-pdf?id=${orderOdooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
+}
+
+// URL del Excel del pedido.
+export function orderXlsxUrl(orderOdooId) {
+  if (!orderOdooId) return null;
+  const t = auth.getToken();
+  return `/api/order-xlsx?id=${orderOdooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
+}
+
 // URL para usar directamente en <img src>. Lleva el token en query.
 // Acepta o bien `odooId` (variante product.product) o `{templateId}` (plantilla).
 export function productImageUrl(odooIdOrParams) {

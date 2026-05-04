@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
-import { api } from '../api';
+import { api, orderPdfUrl, orderXlsxUrl } from '../api';
 import { eur } from '../lib/format';
 
 const STATUS_LABEL = { borrador:'Por confirmar', pendiente:'Pendiente', fabricado:'Fabricado', facturado:'Facturado', cancelado:'Cancelado' };
@@ -124,6 +124,16 @@ export function OrderDetailModal({ order, onClose }) {
         <div className="drawer-foot hstack">
           <div className="muted t-small">ID Odoo: {data?.order?.odooId || order.odooId || '—'}</div>
           <div className="spacer"/>
+          {(data?.order?.odooId || order.odooId) && (
+            <>
+              <a className="btn btn-secondary" href={orderPdfUrl(data?.order?.odooId || order.odooId)} target="_blank" rel="noopener" download>
+                <Icon name="orders" size={14}/> PDF
+              </a>
+              <a className="btn btn-secondary" href={orderXlsxUrl(data?.order?.odooId || order.odooId)} download>
+                <Icon name="orders" size={14}/> Excel
+              </a>
+            </>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
         </div>
       </div>
