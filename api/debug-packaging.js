@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     out.has_packaging_ids = 'packaging_ids' in tplFields;
 
     // Lee solo campos seguros (saltando los que no existen)
-    const safeFieldNames = ['id','name','uom_id','uom_po_id', ...candidates.map(c => c.name).filter(n => n in tplFields)];
+    const safeFieldNames = ['id','name', ...candidates.map(c => c.name).filter(n => n in tplFields)];
     if ('packaging_ids' in tplFields) safeFieldNames.push('packaging_ids');
     const uniqFields = [...new Set(safeFieldNames)];
     const tplRows = await search_read('product.template', [['id','=', templateId]], uniqFields, { limit: 1 });
@@ -38,6 +38,15 @@ export default async function handler(req, res) {
           ['id','name','qty','barcode'],
           { limit: 50 });
       } catch (e) { out.packagings_error = e.message; }
+    }
+
+    // Si Odoo 18+ usa uom_ids como packaging
+    if (out.template?.uom_ids?.length) {
+      try {
+        out.uoms = await search_read('uom.uom', [['id','in', out.template.uom_ids]],
+          ['id','name','factor','factor_inv','category_id','rounding','active'],
+          { limit: 50 });
+      } catch (e) { out.uoms_error = e.message; }
     }
   } catch (e) {
     out.error = e.message;
