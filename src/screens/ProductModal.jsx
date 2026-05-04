@@ -41,10 +41,18 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
   if (!p) return null;
   const price = p.pvp * (tariffMult[tariff] || 1);
 
+  // Si el producto se vende en cajas, el modal opera EXCLUSIVAMENTE por cajas:
+  // el stepper representa cajas, no unidades sueltas. El campo `qty` del
+  // carrito sigue siendo unidades para que Odoo reciba lo correcto.
+  const pkgQty = p.packaging?.qty || 1;
+
   // Para single variant
   const singleQty = !isMulti ? (cart[singleVariantIdLocal]?.qty || 0) : 0;
+  const singleBoxes = pkgQty > 1 ? Math.floor(singleQty / pkgQty) : singleQty;
+  const setSingleBoxes = (n) => setSingleQty(Math.max(0, n) * pkgQty);
   const setSingleQty = (n) => updateCartQty(singleVariantIdLocal, n, {
     templateId: p.templateId ?? p.id, name: p.name, price: p.pvp, sku: p.sku, ean: p.ean, color: p.color, glyph: p.glyph,
+    packaging: p.packaging || null,
   });
 
   return (
@@ -97,20 +105,39 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
 
             {!isMulti ? (
               <div className="vstack" style={{ gap: 8, marginTop: 8 }}>
-                <div className="hstack" style={{ gap: 10 }}>
-                  <div className="stepper lg">
-                    <button onClick={()=>setSingleQty(Math.max(0,singleQty-1))}><Icon name="minus" size={16}/></button>
-                    <input value={singleQty} onChange={e=>setSingleQty(Math.max(0,parseInt(e.target.value)||0))}/>
-                    <button onClick={()=>setSingleQty(singleQty+1)}><Icon name="plus" size={16}/></button>
+                {p.packaging ? (
+                  // Solo cajas: el stepper representa cajas y el "Añadir" inicial
+                  // suma 1 caja completa.
+                  <>
+                    <div className="hstack" style={{ gap: 10 }}>
+                      <div className="stepper lg">
+                        <button onClick={()=>setSingleBoxes(Math.max(0,singleBoxes-1))}><Icon name="minus" size={16}/></button>
+                        <input value={singleBoxes} onChange={e=>setSingleBoxes(Math.max(0,parseInt(e.target.value)||0))}/>
+                        <button onClick={()=>setSingleBoxes(singleBoxes+1)}><Icon name="plus" size={16}/></button>
+                      </div>
+                      <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleBoxes===0) setSingleBoxes(1); onClose(); }}>
+                        <Icon name="cart" size={16}/> {singleBoxes===0 ? `Añadir caja (${pkgQty} ud)` : 'Actualizar pedido'}
+                      </button>
+                    </div>
+                    <div className="t-tiny" style={{ color:'var(--ink-3)' }}>
+                      {singleBoxes > 0 && (
+                        <>= <span className="tabular">{singleBoxes * pkgQty} ud</span> · <span className="tabular">{eur(singleBoxes * pkgQty * price)}</span></>
+                      )}
+                      {singleBoxes === 0 && <>Este producto se vende solo por cajas de {pkgQty} unidades.</>}
+                    </div>
+                  </>
+                ) : (
+                  // Producto sin packaging: stepper en unidades sueltas como antes.
+                  <div className="hstack" style={{ gap: 10 }}>
+                    <div className="stepper lg">
+                      <button onClick={()=>setSingleQty(Math.max(0,singleQty-1))}><Icon name="minus" size={16}/></button>
+                      <input value={singleQty} onChange={e=>setSingleQty(Math.max(0,parseInt(e.target.value)||0))}/>
+                      <button onClick={()=>setSingleQty(singleQty+1)}><Icon name="plus" size={16}/></button>
+                    </div>
+                    <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleQty===0) setSingleQty(1); onClose(); }}>
+                      <Icon name="cart" size={16}/> {singleQty===0?'Añadir al pedido':'Actualizar pedido'}
+                    </button>
                   </div>
-                  <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={()=>{ if(singleQty===0) setSingleQty(1); onClose(); }}>
-                    <Icon name="cart" size={16}/> {singleQty===0?'Añadir al pedido':'Actualizar pedido'}
-                  </button>
-                </div>
-                {p.packaging && (
-                  <button className="btn btn-secondary btn-sm" onClick={()=>setSingleQty(singleQty + p.packaging.qty)} style={{ alignSelf:'flex-start' }}>
-                    <Icon name="plus" size={14}/> Añadir caja ({p.packaging.qty} ud)
-                  </button>
                 )}
               </div>
             ) : (
@@ -133,6 +160,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                         ean: v.ean,
                         color: p.color,
                         glyph: p.glyph,
+                        packaging: p.packaging || null,
                       });
                       const noStock = showStock && v.stock === 0;
                       return (

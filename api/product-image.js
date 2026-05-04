@@ -21,7 +21,8 @@ export default async function handler(req, res) {
     const b64 = rows?.[0]?.image_512;
     if (!b64) {
       // Sin imagen → 404 corto cacheado, así el navegador no reintenta cada vez.
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      // s-maxage hace que el CDN de Vercel cachee también el 404.
+      res.setHeader('Cache-Control', 'public, max-age=600, s-maxage=3600');
       return res.status(404).end();
     }
 
@@ -33,7 +34,10 @@ export default async function handler(req, res) {
     else if (buf[0] === 0x52 && buf[1] === 0x49) type = 'image/webp';
 
     res.setHeader('Content-Type', type);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h
+    // Browser 1 día, CDN Vercel 30 días con stale-while-revalidate 1 día.
+    // Resultado: tras la primera petición de cada producto, cualquier comercial
+    // recibe la imagen instantáneamente desde el edge sin pasar por la lambda.
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400');
     res.setHeader('Content-Length', String(buf.length));
     res.status(200).end(buf);
   } catch (e) {

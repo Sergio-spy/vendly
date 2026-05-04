@@ -46,7 +46,17 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
             </div>
           ) : (
             <div className="vstack" style={{ gap: 8 }}>
-              {lines.map(l => (
+              {lines.map(l => {
+                // Si la línea trae packaging, operamos por cajas: el stepper
+                // muestra cajas y +/- mueve packaging.qty unidades. El total
+                // y price/ud siguen igual.
+                const pkgQty = l.e.packaging?.qty || 1;
+                const isBox = pkgQty > 1;
+                const display = isBox ? Math.floor(l.qty / pkgQty) : l.qty;
+                const stepUp   = () => updateCartQty(Number(l.variantId), l.qty + pkgQty);
+                const stepDown = () => updateCartQty(Number(l.variantId), Math.max(0, l.qty - pkgQty));
+                const onInput  = (n) => updateCartQty(Number(l.variantId), Math.max(0, n) * pkgQty);
+                return (
                 <div key={l.variantId} className="hstack" style={{ padding: 10, border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 10 }}>
                   <div className="prod-img" style={{ width: 44, height: 44, flexShrink: 0 }}>
                     <ProductImage p={{ templateId: l.e.templateId, odooId: Number(l.variantId), name: l.e.name, glyph: l.e.glyph }} size={28}/>
@@ -55,16 +65,20 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
                     <div className="t-tiny">{l.e.sku || ''}{l.e.sku && l.e.ean ? ' · ' : ''}{l.e.ean || ''}</div>
                     <div style={{ fontSize: 13, fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l.e.name}</div>
                     {l.e.attrLabel && <div className="t-small">{l.e.attrLabel}</div>}
-                    <div className="t-small tabular">{eur(l.price)} / ud</div>
+                    <div className="t-small tabular">
+                      {eur(l.price)} / ud
+                      {isBox && <> · <span className="muted">{l.qty} ud · caja de {pkgQty}</span></>}
+                    </div>
                   </div>
-                  <div className="stepper">
-                    <button onClick={()=>updateCartQty(Number(l.variantId), Math.max(0, l.qty-1))}><Icon name="minus" size={14}/></button>
-                    <input value={l.qty} onChange={e=>updateCartQty(Number(l.variantId), Math.max(0, parseInt(e.target.value)||0))}/>
-                    <button onClick={()=>updateCartQty(Number(l.variantId), l.qty+1)}><Icon name="plus" size={14}/></button>
+                  <div className="stepper" title={isBox ? `Cajas de ${pkgQty} ud` : undefined}>
+                    <button onClick={stepDown}><Icon name="minus" size={14}/></button>
+                    <input value={display} onChange={e => onInput(parseInt(e.target.value)||0)}/>
+                    <button onClick={stepUp}><Icon name="plus" size={14}/></button>
                   </div>
                   <div className="tabular bold" style={{ width: 70, textAlign:'right' }}>{eur(l.total)}</div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

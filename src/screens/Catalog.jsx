@@ -42,6 +42,9 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
     ean: p.ean,
     color: p.color,
     glyph: p.glyph,
+    // packaging viaja con la línea para que el carrito pueda mostrar y operar
+    // por cajas (impedir cantidades sueltas, ver número de cajas, etc.).
+    packaging: p.packaging || null,
   });
 
   return (

@@ -1,7 +1,7 @@
 import { Icon } from './Icon';
 import { eur } from '../lib/format';
 
-export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, onToggleSidebar, pendingOutbox = 0, onOpenOutbox }) {
+export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, orderUnits = 0, onToggleSidebar, pendingOutbox = 0, onOpenOutbox }) {
   // Estado del badge de conectividad: prioriza informar de pedidos pendientes.
   const offline = !online;
   const showWarn = offline || pendingOutbox > 0;
@@ -53,10 +53,10 @@ export function Topbar({ title, client, setClientPickerOpen, online, lastSync, o
       <button className="btn btn-ghost btn-icon tb-bell" title="Notificaciones"><Icon name="bell"/></button>
 
       {orderLines > 0 && (
-        <button className="btn btn-primary tb-cart" onClick={onOpenOrder}>
+        <button className="btn btn-primary tb-cart" onClick={onOpenOrder} title={`${orderUnits} ud · ${orderLines} líneas`}>
           <Icon name="cart" size={16}/>
+          <span className="tb-cart-count" style={{ background:'rgba(255,255,255,.25)', borderRadius:'999px', padding:'1px 7px', fontSize:11, marginLeft:2 }}>{orderUnits} ud</span>
           <span className="t-num tb-cart-total">{eur(orderTotal)}</span>
-          <span className="tb-cart-count" style={{ background:'rgba(255,255,255,.25)', borderRadius:'999px', padding:'1px 7px', fontSize:11, marginLeft:2 }}>{orderLines}</span>
         </button>
       )}
     </header>

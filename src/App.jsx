@@ -17,6 +17,7 @@ import { api, auth } from './api';
 import { cacheGet, cacheSet, outboxAdd, outboxCountPending, onOutboxChange } from './lib/db';
 import { startAutoSync } from './lib/sync';
 import { useOnline } from './lib/online';
+import { prefetchProductImages } from './lib/prefetch';
 
 function buildTariffMult(tariffs) {
   const map = {};
@@ -105,6 +106,9 @@ export default function App() {
           applyBootstrap(data);
           // Persistimos snapshot para arranque offline en futuras sesiones.
           cacheSet('bootstrap', data).catch(() => {});
+          // Pre-cacheamos imágenes para que estén listas offline y la
+          // navegación al catálogo sea instantánea.
+          prefetchProductImages(data.products || []);
           if (salesman.role === 'admin') {
             api.comerciales().then(setComerciales).catch(() => setComerciales([]));
           }
@@ -191,6 +195,7 @@ export default function App() {
   // Cart entries: { [variantOdooId]: { qty, templateId, name, attrLabel?, price, sku, ean?, color?, glyph? } }
   const lines = Object.entries(cart).filter(([,e]) => e?.qty > 0);
   const orderTotal = lines.reduce((a,[,e]) => a + (e.price * (tariffMult[tariff]||1) * e.qty), 0) * 1.21;
+  const orderUnits = lines.reduce((a,[,e]) => a + (e.qty || 0), 0);
 
   // Helper para añadir / actualizar cantidad de una variante en el carrito.
   // qty=0 elimina la línea. info se mezcla en la entrada (nombre, precio, etc.).
@@ -340,6 +345,7 @@ export default function App() {
           lastSync={mode === 'odoo' ? 'Odoo · live' : 'modo mock'}
           orderTotal={orderTotal}
           orderLines={lines.length}
+          orderUnits={orderUnits}
           onOpenOrder={()=>setOrderOpen(true)}
           onToggleSidebar={toggleCollapsed}
           pendingOutbox={pendingOutbox}
