@@ -42,11 +42,15 @@ export async function resolvePricelistId(partnerId) {
   return getDefaultPricelistId();
 }
 
-// Cache de items por pricelist (proceso). Las reglas cambian poco; rotamos al
-// reiniciar la lambda. Si necesitas invalidar antes, redeploya.
-const _itemsCache = new Map();
+// Cache de items por pricelist (proceso) con TTL corto. Las reglas cambian
+// poco pero cuando se editan en Odoo el cambio debe reflejarse rápido en la
+// app — un TTL de 60s es buen compromiso entre latencia y frescura. Si quieres
+// invalidación inmediata, baja a 0 (cada request consulta Odoo).
+const ITEMS_TTL_MS = 60_000;
+const _itemsCache = new Map(); // pricelistId -> { items, expiresAt }
 async function getPricelistItems(pricelistId) {
-  if (_itemsCache.has(pricelistId)) return _itemsCache.get(pricelistId);
+  const hit = _itemsCache.get(pricelistId);
+  if (hit && hit.expiresAt > Date.now()) return hit.items;
   const items = await search_read('product.pricelist.item',
     [['pricelist_id','=', pricelistId]],
     ['applied_on','base','base_pricelist_id','compute_price',
@@ -55,7 +59,7 @@ async function getPricelistItems(pricelistId) {
      'product_id','product_tmpl_id','categ_id',
      'min_quantity','date_start','date_end'],
     { limit: 500 });
-  _itemsCache.set(pricelistId, items);
+  _itemsCache.set(pricelistId, { items, expiresAt: Date.now() + ITEMS_TTL_MS });
   return items;
 }
 
