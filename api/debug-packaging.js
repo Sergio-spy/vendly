@@ -27,17 +27,23 @@ export default async function handler(req, res) {
 
   // 3) Si tiene packaging_ids, los leemos
   let packagings = null;
+  let packagingFields = null;
   if (Array.isArray(tpl?.packaging_ids) && tpl.packaging_ids.length) {
-    const pkgFields = await call('product.packaging', 'fields_get', [], { attributes: ['string','type'] });
-    packagings = await search_read('product.packaging', [['id','in', tpl.packaging_ids]],
-      ['id','name','qty','barcode','product_uom_id','sales','purchase'].filter(f => f in pkgFields),
-      { limit: 50 });
+    try {
+      packagingFields = await call('product.packaging', 'fields_get', [], { attributes: ['string','type'] });
+    } catch (e) { packagingFields = { error: e.message }; }
+    try {
+      packagings = await search_read('product.packaging', [['id','in', tpl.packaging_ids]],
+        ['id','name','qty','barcode'],
+        { limit: 50 });
+    } catch (e) { packagings = { error: e.message }; }
   }
 
   res.status(200).json({
     template: tpl,
     candidate_fields_in_template: candidates,
     packagings,
+    packaging_fields_available: packagingFields ? Object.keys(packagingFields).slice(0,40) : null,
     note: 'Si packaging_ids != [] → es estándar Odoo (product.packaging). Si packaging_ids = [] pero un x_studio_* tiene un número como 14 → campo custom.',
   });
 }
