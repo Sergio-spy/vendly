@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       'list_price', 'qty_available', 'categ_id',
       'product_variant_count', 'product_variant_ids',
       'uom_ids', // Odoo 18+ usa uom_ids como packaging
+      'write_date', // versión de imagen → cache busting cuando se actualiza
     ];
     const rows = await search_read('product.template', domain, fields, { limit: 1000 });
 
@@ -62,7 +63,11 @@ export default async function handler(req, res) {
       if (vId) variantByTemplate.set(r.id, vId);
     }
     const variantIds = [...variantByTemplate.values()];
-    const [priceByVariant, variantInfoRows, pvpId, packagingByTpl] = await Promise.all([
+    // Para multi-variante necesitamos también las write_date de TODAS las
+    // variantes (no solo la primera) para que el cambio en cualquier imagen
+    // de variante invalide la caché del mosaico 2x2.
+    const allVariantIds = [...new Set(rows.flatMap(r => r.product_variant_ids || []))];
+    const [priceByVariant, variantInfoRows, pvpId, packagingByTpl, allVariantWriteRows] = await Promise.all([
       computePrices(pricelistId, variantIds, partnerId),
       variantIds.length
         ? search_read('product.product',
@@ -72,8 +77,17 @@ export default async function handler(req, res) {
         : Promise.resolve([]),
       getComercialPvpId(),
       resolvePackagings(rows),
+      allVariantIds.length
+        ? search_read('product.product',
+            [['id','in', allVariantIds]],
+            ['id','write_date'],
+            { limit: allVariantIds.length })
+        : Promise.resolve([]),
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
+    const variantWriteById = new Map(allVariantWriteRows.map(v => [v.id, v.write_date || '']));
+    // Helper: comprime '2026-05-04 11:23:05' → '20260504112305' (URL-safe).
+    const compactV = (s) => String(s || '').replace(/[^0-9]/g, '');
     // Recargo de visualización: si la tarifa aplicada es Comercial PVP y el
     // usuario NO es admin, ocultamos el PVP real subiéndolo un 15%.
     const inflate = c.role !== 'admin' && pricelistId && pvpId && pricelistId === pvpId;
@@ -97,6 +111,12 @@ export default async function handler(req, res) {
       }
       const pkg = packagingByTpl.get(r.id);
       if (pkg) m.packaging = pkg; // { name, qty }
+      // Versión de imagen: máximo entre write_date del template y el de todas
+      // sus variantes. Cuando cambies una foto en Odoo, esta string cambia,
+      // la URL cambia y todas las cachés (browser + CDN + SW) la invalidan.
+      const variantWrites = (r.product_variant_ids || []).map(id => variantWriteById.get(id) || '');
+      const maxWrite = [r.write_date || '', ...variantWrites].sort().pop();
+      m.imgV = compactV(maxWrite);
       return m;
     });
     res.status(200).json(items);

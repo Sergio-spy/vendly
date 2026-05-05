@@ -81,6 +81,7 @@ export default async function handler(req, res) {
         'list_price','qty_available','categ_id',
         'product_variant_count','product_variant_ids',
         'uom_ids',
+        'write_date',
       ], { limit: 1000 }),
       search_read('res.partner', clientDomain, [
         'name','ref','vat','city','street','street2','phone','email',
@@ -139,11 +140,12 @@ export default async function handler(req, res) {
       if (vId) variantByTemplate.set(r.id, vId);
     }
     const variantIds = [...variantByTemplate.values()];
+    const allVariantIds = [...new Set(productRows.flatMap(r => r.product_variant_ids || []))];
     const defaultPricelistId = await resolvePricelistId(null);
     // En bootstrap siempre se usa Comercial PVP (sin cliente). Si el usuario
     // no es admin, se aplica el recargo de visualización del 15%.
     const markup = c.role !== 'admin' ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
-    const [priceByVariant, variantInfoRows, packagingByTpl] = await Promise.all([
+    const [priceByVariant, variantInfoRows, packagingByTpl, allVariantWriteRows] = await Promise.all([
       computePrices(defaultPricelistId, variantIds, null),
       variantIds.length
         ? search_read('product.product',
@@ -152,8 +154,16 @@ export default async function handler(req, res) {
             { limit: variantIds.length })
         : Promise.resolve([]),
       resolvePackagings(productRows),
+      allVariantIds.length
+        ? search_read('product.product',
+            [['id','in', allVariantIds]],
+            ['id','write_date'],
+            { limit: allVariantIds.length })
+        : Promise.resolve([]),
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
+    const variantWriteById = new Map(allVariantWriteRows.map(v => [v.id, v.write_date || '']));
+    const compactV = (s) => String(s || '').replace(/[^0-9]/g, '');
 
     // Mapeos finales.
     const products = productRows.map(r => {
@@ -173,6 +183,9 @@ export default async function handler(req, res) {
       }
       const pkg = packagingByTpl.get(r.id);
       if (pkg) m.packaging = pkg; // { name, qty }
+      const variantWrites = (r.product_variant_ids || []).map(id => variantWriteById.get(id) || '');
+      const maxWrite = [r.write_date || '', ...variantWrites].sort().pop();
+      m.imgV = compactV(maxWrite);
       return m;
     });
 

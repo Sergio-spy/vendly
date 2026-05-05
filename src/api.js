@@ -64,17 +64,20 @@ export function orderXlsxUrl(orderOdooId) {
 //   - número (id de variante product.product)
 //   - { templateId } / { odooId } / { size } (size: 128 | 256 | 512 | 1024)
 // El size se aplica solo si se pasa explícitamente; default backend = 512.
+// `v` (opcional): versión de imagen (write_date compactado). Cambia → la
+// URL cambia → todas las cachés (browser, CDN Vercel, SW) revalidan.
 export function productImageUrl(odooIdOrParams, opts = {}) {
   const t = auth.getToken();
   const tokenQs = t ? '&token=' + encodeURIComponent(t) : '';
   const size = (opts.size && [128,256,512,1024].includes(opts.size)) ? `&size=${opts.size}` : '';
+  const v = opts.v ? `&v=${encodeURIComponent(opts.v)}` : '';
   if (typeof odooIdOrParams === 'object' && odooIdOrParams) {
-    if (odooIdOrParams.templateId) return `/api/product-image?templateId=${odooIdOrParams.templateId}${size}${tokenQs}`;
-    if (odooIdOrParams.odooId)     return `/api/product-image?id=${odooIdOrParams.odooId}${size}${tokenQs}`;
+    if (odooIdOrParams.templateId) return `/api/product-image?templateId=${odooIdOrParams.templateId}${size}${v}${tokenQs}`;
+    if (odooIdOrParams.odooId)     return `/api/product-image?id=${odooIdOrParams.odooId}${size}${v}${tokenQs}`;
     return null;
   }
   if (!odooIdOrParams) return null;
-  return `/api/product-image?id=${odooIdOrParams}${size}${tokenQs}`;
+  return `/api/product-image?id=${odooIdOrParams}${size}${v}${tokenQs}`;
 }
 
 export const api = {

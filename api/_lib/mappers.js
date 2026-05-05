@@ -91,6 +91,7 @@ export function mapVariant(r) {
     odooId:    r.id,
     sku:       r.x_studio_referencia || r.default_code || '',
     ean:       r.barcode || '',
+    imgV:      String(r.write_date || '').replace(/[^0-9]/g, ''),
     name:      m ? dn.replace(/\s*\([^)]+\)\s*$/, '').trim() : dn,
     attrLabel: m ? m[1] : '', // ej. "Color: Azul, Tamaño: M"
     pvp:       r.list_price || 0,
