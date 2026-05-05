@@ -49,12 +49,12 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
 
   return (
     <div style={{ display:'grid', gridTemplateColumns:'240px 1fr', height:'100%' }}>
-      <aside style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 16, overflowY:'auto' }}>
-        <div className="t-tiny" style={{ marginBottom: 10 }}>Familias</div>
-        <div className="vstack" style={{ gap: 2 }}>
+      <aside style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 12, overflowY:'auto' }}>
+        <div className="t-tiny" style={{ marginBottom: 8 }}>Familias</div>
+        <div className="vstack" style={{ gap: 0 }}>
           <button
             onClick={()=>setFamilyKey('all')}
-            className="sb-item"
+            className="sb-item rail-item"
             data-active={String(familyKey==='all')}
             title="Todas">
             <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, minWidth:0 }}>Todas</span>
@@ -65,11 +65,12 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
             return (
               <button key={f.key}
                 onClick={()=>setFamilyKey(f.key)}
-                className="sb-item"
+                className="sb-item rail-item"
                 data-active={String(familyKey===f.key)}
+                data-parent={String(f.hasChildren)}
                 title={f.name}
-                style={{ paddingLeft: 12 + f.depth * 10, alignItems:'flex-start' }}>
-                <span style={{ flex:1, minWidth:0, fontWeight: f.hasChildren ? 600 : 500, whiteSpace:'normal', wordBreak:'break-word', lineHeight: 1.3, textAlign:'left' }}>{f.name}</span>
+                style={{ paddingLeft: 10 + f.depth * 10 }}>
+                <span style={{ flex:1, minWidth:0, whiteSpace:'normal', wordBreak:'break-word', textAlign:'left' }}>{f.name}</span>
                 {leafCount != null && <span className="badge" style={{ flexShrink: 0 }}>{leafCount}</span>}
               </button>
             );
