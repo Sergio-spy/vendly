@@ -166,6 +166,14 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                         packaging: p.packaging || null,
                       });
                       const noStock = showStock && v.stock === 0;
+                      // Si el producto tiene packaging, también las variantes
+                      // se piden por cajas: stepper en cajas, +/- mueve pkgQty.
+                      const isBox = pkgQty > 1;
+                      const vDisplay = isBox ? Math.floor(vQty / pkgQty) : vQty;
+                      const vPlus  = () => setVQty(vQty + pkgQty);
+                      const vMinus = () => setVQty(Math.max(0, vQty - pkgQty));
+                      const vInput = (n) => setVQty(Math.max(0, n) * pkgQty);
+                      const vInitialAdd = () => setVQty(pkgQty);
                       return (
                         <div key={v.id} className="hstack" style={{ padding: '10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 12, opacity: noStock ? 0.55 : 1 }}>
                           <div style={{ width: 56, height: 56, flexShrink: 0, border:'1px solid var(--border)', borderRadius: 6, overflow:'hidden' }}>
@@ -178,18 +186,19 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                               {v.sku && v.ean && <span> · </span>}
                               {v.ean && <span className="tabular">EAN: {v.ean}</span>}
                               {showStock && <span> · {v.stock} ud.</span>}
+                              {isBox && vQty > 0 && <span> · <span className="muted">{vQty} ud</span></span>}
                             </div>
                           </div>
                           <div className="tabular bold" style={{ fontSize: 14, color:'var(--brand-700)', minWidth: 70, textAlign: 'right' }}>{eur(vPrice)}</div>
                           {vQty > 0 ? (
-                            <div className="stepper active">
-                              <button onClick={() => setVQty(Math.max(0, vQty - 1))}><Icon name="minus" size={14}/></button>
-                              <input value={vQty} onChange={e => setVQty(Math.max(0, parseInt(e.target.value)||0))}/>
-                              <button onClick={() => setVQty(vQty + 1)} disabled={noStock}><Icon name="plus" size={14}/></button>
+                            <div className="stepper active" title={isBox ? `Cajas de ${pkgQty} ud` : undefined}>
+                              <button onClick={vMinus}><Icon name="minus" size={14}/></button>
+                              <input value={vDisplay} onChange={e => vInput(parseInt(e.target.value)||0)}/>
+                              <button onClick={vPlus} disabled={noStock}><Icon name="plus" size={14}/></button>
                             </div>
                           ) : (
-                            <button className="btn btn-secondary btn-sm" onClick={() => setVQty(1)} disabled={noStock}>
-                              <Icon name="plus" size={14}/> Añadir
+                            <button className="btn btn-secondary btn-sm" onClick={vInitialAdd} disabled={noStock} title={isBox ? `Añadir caja (${pkgQty} ud)` : undefined}>
+                              <Icon name="plus" size={14}/> {isBox ? `Caja (${pkgQty})` : 'Añadir'}
                             </button>
                           )}
                         </div>
