@@ -59,18 +59,25 @@ export function orderXlsxUrl(orderOdooId) {
   return `/api/order-xlsx?id=${orderOdooId}${t ? '&token=' + encodeURIComponent(t) : ''}`;
 }
 
+// Versión global de imágenes — admin la bumpea desde la pantalla de admin.
+// Cuando cambia, todas las URLs de productImageUrl llevan ese v y las cachés
+// (browser, CDN, SW) revalidan. Se setea desde App.jsx tras el bootstrap.
+let _imageVersion = '';
+export function setImageVersion(v) { _imageVersion = v || ''; }
+export function getImageVersion() { return _imageVersion; }
+
 // URL para usar directamente en <img src>. Lleva el token en query.
 // Acepta:
 //   - número (id de variante product.product)
 //   - { templateId } / { odooId } / { size } (size: 128 | 256 | 512 | 1024)
 // El size se aplica solo si se pasa explícitamente; default backend = 512.
-// `v` (opcional): versión de imagen (write_date compactado). Cambia → la
-// URL cambia → todas las cachés (browser, CDN Vercel, SW) revalidan.
+// `v` (opcional, override): versión específica. Si no se pasa, usa la global.
 export function productImageUrl(odooIdOrParams, opts = {}) {
   const t = auth.getToken();
   const tokenQs = t ? '&token=' + encodeURIComponent(t) : '';
   const size = (opts.size && [128,256,512,1024].includes(opts.size)) ? `&size=${opts.size}` : '';
-  const v = opts.v ? `&v=${encodeURIComponent(opts.v)}` : '';
+  const ver = opts.v || _imageVersion;
+  const v = ver ? `&v=${encodeURIComponent(ver)}` : '';
   if (typeof odooIdOrParams === 'object' && odooIdOrParams) {
     if (odooIdOrParams.templateId) return `/api/product-image?templateId=${odooIdOrParams.templateId}${size}${v}${tokenQs}`;
     if (odooIdOrParams.odooId)     return `/api/product-image?id=${odooIdOrParams.odooId}${size}${v}${tokenQs}`;
@@ -122,6 +129,10 @@ export const api = {
 
   // Comparador de tarifas
   comparePricelists: (payload) => req('/pricelist-compare', { method:'POST', body: JSON.stringify(payload) }),
+
+  // Versión global de imágenes (admin)
+  imagesVersion:      () => req('/images-version'),
+  bumpImagesVersion:  () => req('/images-version', { method:'POST' }),
 
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),

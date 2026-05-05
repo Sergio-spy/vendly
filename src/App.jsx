@@ -13,7 +13,7 @@ import { OutboxModal } from './screens/OutboxModal';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
 import { PromosAdmin } from './screens/PromosAdmin';
 import { AdminKpi } from './screens/AdminKpi';
-import { api, auth } from './api';
+import { api, auth, setImageVersion } from './api';
 import { cacheGet, cacheSet, outboxAdd, outboxCountPending, onOutboxChange } from './lib/db';
 import { startAutoSync } from './lib/sync';
 import { useOnline } from './lib/online';
@@ -143,6 +143,7 @@ export default function App() {
     setOrders(data.orders || []);
     setFamilies(data.families || []);
     setMyGoal(data.myGoal || null);
+    setImageVersion(data.imageVersion || '');
     setClient(null);
     setCart({});
   }

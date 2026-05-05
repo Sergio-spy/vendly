@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       health: { ok: true, mode: 'mock', odooAuth: null, apiKeyExpiresAt: expiresAt, apiKeyDaysLeft },
       products: PRODUCTS, clients: CLIENTS, tariffs: TARIFFS, promos: PROMOS, orders: ORDERS, families: [],
+      imageVersion: '',
     });
   }
 
@@ -206,6 +207,11 @@ export default async function handler(req, res) {
       if (all && all[c.id]) myGoal = all[c.id];
     } catch {}
 
+    // Versión global de imágenes — cuando admin la bumpa, todas las URLs
+    // de /api/product-image cambian y las cachés revalidan.
+    let imageVersion = '';
+    try { imageVersion = (await kvGet('imageVersion')) || ''; } catch {}
+
     res.status(200).json({
       health: {
         ok: true,
@@ -219,6 +225,7 @@ export default async function handler(req, res) {
       },
       products, clients, tariffs, promos, orders, families,
       myGoal,
+      imageVersion,
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

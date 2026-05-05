@@ -769,6 +769,63 @@ export function KpiScreen({ clients = [], products = [] }) {
   );
 }
 
+function ImagesCacheCard({ onRefreshAll }) {
+  const [version, setVersion] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  React.useEffect(() => {
+    api.imagesVersion().then(d => setVersion(d.version || '')).catch(() => setVersion(''));
+  }, []);
+
+  const onBump = async () => {
+    if (!confirm('Esto fuerza a TODOS los dispositivos a recargar las imágenes del catálogo desde Odoo. ¿Continuar?')) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api.bumpImagesVersion();
+      setVersion(r.version);
+      setMsg('✓ Versión actualizada. Los comerciales verán las nuevas imágenes en cuanto su PWA recargue el bootstrap (próxima apertura o en máximo 1 min).');
+      // Recargamos bootstrap aquí para que el admin vea las imágenes nuevas ya.
+      onRefreshAll?.();
+    } catch (e) {
+      setMsg('✗ ' + e.message);
+    } finally { setBusy(false); }
+  };
+
+  const fmtVersion = (v) => {
+    if (!v) return '— (nunca forzado)';
+    const ms = parseInt(v, 10);
+    if (!Number.isFinite(ms)) return v;
+    return new Date(ms).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+  };
+
+  return (
+    <div className="card" style={{ padding: 22 }}>
+      <div className="hstack" style={{ marginBottom: 12 }}>
+        <div className="t-h2">Imágenes del catálogo</div>
+        <div className="spacer"/>
+        <button className="btn btn-secondary btn-sm" onClick={onBump} disabled={busy}>
+          <Icon name="sync" size={14}/> {busy ? 'Forzando…' : 'Forzar refresco'}
+        </button>
+      </div>
+      <div className="vstack" style={{ gap: 6 }}>
+        <div className="hstack">
+          <span className="muted">Último refresco forzado</span>
+          <div className="spacer"/>
+          <span className="tabular bold">{fmtVersion(version)}</span>
+        </div>
+        <div className="t-small muted" style={{ marginTop: 6 }}>
+          Las imágenes del catálogo se cachean 30 días en el CDN de Vercel para que carguen al instante.
+          Si actualizas fotos en Odoo y necesitas que se vean ya, pulsa "Forzar refresco":
+          la próxima vez que cada comercial abra la PWA descargará las imágenes nuevas.
+        </div>
+        {msg && <div className="t-small" style={{ marginTop: 6, color: msg.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>{msg}</div>}
+      </div>
+    </div>
+  );
+}
+
 export function AdminScreen({ mode = 'mock', health = null, products = [], clients = [], tariffs = [], orders = [], promos = [], onRefresh }) {
   const [sales, setSales] = useState([]);
   const [loadingSales, setLoadingSales] = useState(false);
@@ -946,6 +1003,8 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
           <div className="t-small muted-2" style={{ marginTop: 12 }}>Última carga: {now.toLocaleTimeString('es-ES')}</div>
         </div>
       </div>
+
+      <ImagesCacheCard onRefreshAll={onRefresh}/>
 
       <div className="card" style={{ padding: 22 }}>
         <div className="t-h2" style={{ marginBottom: 12 }}>API Key Odoo</div>
