@@ -28,14 +28,13 @@ export async function prefetchProductImages(products) {
   //     antes de navegar y para offline.
   const urls = [];
   for (const p of products) {
-    const v = p.imgV;
-    if (p.templateId) urls.push(productImageUrl({ templateId: p.templateId }, { v }));
+    if (p.templateId) urls.push(productImageUrl({ templateId: p.templateId }));
     if ((p.variantIds?.length || 0) > 1) {
       // Variantes en tamaño pequeño (image_128) — el mosaico 2x2 las muestra
       // en celdas chicas, con 128 ya se ven bien y la carga es ~10× más
       // ligera que con 512.
       for (const vid of p.variantIds.slice(0, 4)) {
-        urls.push(productImageUrl(vid, { size: 128, v }));
+        urls.push(productImageUrl(vid, { size: 128 }));
       }
     }
   }

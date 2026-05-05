@@ -10,9 +10,8 @@ function ProductImage({ p, size = '62%' }) {
   const [failed, setFailed] = useState(false);
   let url = null;
   if (!failed) {
-    const opts = p.imgV ? { v: p.imgV } : {};
-    if (p.templateId) url = productImageUrl({ templateId: p.templateId }, opts);
-    else if (p.odooId) url = productImageUrl(p.odooId, opts);
+    if (p.templateId) url = productImageUrl({ templateId: p.templateId });
+    else if (p.odooId) url = productImageUrl(p.odooId);
   }
   if (!url) {
     return <ProdGlyph kind={p.glyph} size={size} color="rgba(20,24,26,0.55)"/>;
@@ -48,7 +47,7 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
     <article className="prod-card-hero" onClick={onOpen}>
       <div className="hero-img">
         {isMulti && (p.variantIds?.length || 0) > 1
-          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%" version={p.imgV}/>
+          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%"/>
           : <ProductImage p={p}/>}
         {p.promo && <div className="badge-promo">{p.promo}</div>}
         {p.oferta && !p.promo && <span className="tag tag-success badge-tag">OFERTA</span>}
@@ -115,7 +114,7 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
     <div className="card" style={{ padding: 'var(--d-pad-row) 14px', display:'grid', gridTemplateColumns: cols, alignItems:'center', gap: 14, cursor:'pointer' }} onClick={onOpen}>
       <div className="prod-img" style={{ width: 48, height: 48, overflow:'hidden', borderRadius: 6 }}>
         {isMulti && (p.variantIds?.length || 0) > 1
-          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="76%" version={p.imgV}/>
+          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="76%"/>
           : <ProductImage p={p} size={32}/>}
       </div>
       <div>
