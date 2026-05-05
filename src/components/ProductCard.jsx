@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Icon, ProdGlyph } from './Icon';
 import { productImageUrl } from '../api';
 import { eur } from '../lib/format';
+import { VariantMosaic } from './VariantMosaic';
 
 // Imagen del producto con fallback al glyph cuando no hay imagen en Odoo.
 // Acepta tanto productos con odooId (variante) como con templateId (plantilla).
@@ -45,7 +46,9 @@ export function ProductCard({ p, qty, setQty, isMulti = false, tariff, tariffMul
   return (
     <article className="prod-card-hero" onClick={onOpen}>
       <div className="hero-img">
-        <ProductImage p={p}/>
+        {isMulti && (p.variantIds?.length || 0) > 1
+          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%"/>
+          : <ProductImage p={p}/>}
         {p.promo && <div className="badge-promo">{p.promo}</div>}
         {p.oferta && !p.promo && <span className="tag tag-success badge-tag">OFERTA</span>}
       </div>
@@ -109,8 +112,10 @@ export function ProductRow({ p, qty, setQty, isMulti = false, tariff, tariffMult
   const initialAdd = () => setQty(pkgQty);
   return (
     <div className="card" style={{ padding: 'var(--d-pad-row) 14px', display:'grid', gridTemplateColumns: cols, alignItems:'center', gap: 14, cursor:'pointer' }} onClick={onOpen}>
-      <div className="prod-img" style={{ width: 48, height: 48 }}>
-        <ProductImage p={p} size={32}/>
+      <div className="prod-img" style={{ width: 48, height: 48, overflow:'hidden', borderRadius: 6 }}>
+        {isMulti && (p.variantIds?.length || 0) > 1
+          ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="76%"/>
+          : <ProductImage p={p} size={32}/>}
       </div>
       <div>
         <div className="t-tiny">

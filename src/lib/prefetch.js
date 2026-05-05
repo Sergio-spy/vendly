@@ -11,14 +11,25 @@ export async function prefetchProductImages(products) {
   if (_running) return;
   if (!Array.isArray(products) || !products.length) return;
   _running = true;
-  // Una sola URL por producto (templateId), porque la tarjeta usa templateId.
-  const urls = products
-    .filter(p => p.templateId)
-    .map(p => productImageUrl({ templateId: p.templateId }))
-    .filter(Boolean);
+  // Para cada producto:
+  //   - URL del template (la usan las tarjetas single-variant y los multi cuando
+  //     no hay imagen específica de variante).
+  //   - URLs de las primeras 4 variantes en multi-variant: el mosaico 2x2 las
+  //     muestra en la tarjeta del catálogo, así que conviene que estén listas
+  //     antes de navegar y para offline.
+  const urls = [];
+  for (const p of products) {
+    if (p.templateId) urls.push(productImageUrl({ templateId: p.templateId }));
+    if ((p.variantIds?.length || 0) > 1) {
+      for (const vid of p.variantIds.slice(0, 4)) {
+        urls.push(productImageUrl(vid));
+      }
+    }
+  }
+  const dedup = [...new Set(urls.filter(Boolean))];
 
   // Pool de N descargas concurrentes. Errores se ignoran (mejor que rotura).
-  const queue = [...urls];
+  const queue = dedup;
   const workers = Array.from({ length: CONCURRENCY }, async () => {
     while (queue.length) {
       const u = queue.shift();

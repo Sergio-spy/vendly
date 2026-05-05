@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
+import { VariantImg, VariantMosaic } from '../components/VariantMosaic';
 import { api } from '../api';
 import { eur } from '../lib/format';
 
@@ -66,7 +67,9 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap: 0, minHeight: 0, overflow: 'hidden' }}>
           <div className="prod-img" style={{ height: 360, borderRadius: 0 }}>
-            <ProductImage p={p}/>
+            {isMulti && (p.variantIds?.length || 0) > 1
+              ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%"/>
+              : <ProductImage p={p}/>}
             {p.promo && <div style={{ position:'absolute', top: 14, left: 14, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{p.promo}</div>}
           </div>
           <div style={{ padding: 22, overflowY: 'auto', maxHeight: '90vh' }}>
@@ -165,6 +168,9 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                       const noStock = showStock && v.stock === 0;
                       return (
                         <div key={v.id} className="hstack" style={{ padding: '10px 12px', border:'1px solid var(--border)', borderRadius:'var(--r-2)', gap: 12, opacity: noStock ? 0.55 : 1 }}>
+                          <div style={{ width: 56, height: 56, flexShrink: 0, border:'1px solid var(--border)', borderRadius: 6, overflow:'hidden' }}>
+                            <VariantImg id={v.odooId} glyph={p.glyph} contain="84%"/>
+                          </div>
                           <div style={{ flex:1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 13.5 }}>{v.attrLabel || v.name}</div>
                             <div className="t-small">
