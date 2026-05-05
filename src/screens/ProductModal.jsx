@@ -68,7 +68,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
         <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap: 0, minHeight: 0, overflow: 'hidden' }}>
           <div className="prod-img" style={{ height: 360, borderRadius: 0 }}>
             {isMulti && (p.variantIds?.length || 0) > 1
-              ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%"/>
+              ? <VariantMosaic variantIds={p.variantIds} fallbackGlyph={p.glyph} size="78%" imgSize={256}/>
               : <ProductImage p={p}/>}
             {p.promo && <div style={{ position:'absolute', top: 14, left: 14, background:'var(--ink)', color:'white', padding:'5px 11px', borderRadius:'999px', fontWeight: 700, fontSize: 12 }}>{p.promo}</div>}
           </div>

@@ -16,9 +16,16 @@ export default async function handler(req, res) {
   const model = templateId ? 'product.template' : 'product.product';
   const target = templateId || id;
 
+  // ?size=128|256|512|1024 — más pequeño en mosaicos y miniaturas, full en
+  // hero del modal. Default 512 mantiene compatibilidad con clientes viejos.
+  const sizeParam = String(req.query?.size || '512');
+  const allowedSizes = ['128','256','512','1024'];
+  const size = allowedSizes.includes(sizeParam) ? sizeParam : '512';
+  const field = `image_${size}`;
+
   try {
-    const rows = await call(model, 'read', [[target], ['image_512']]);
-    const b64 = rows?.[0]?.image_512;
+    const rows = await call(model, 'read', [[target], [field]]);
+    const b64 = rows?.[0]?.[field];
     if (!b64) {
       // Sin imagen → 404 corto cacheado, así el navegador no reintenta cada vez.
       // s-maxage hace que el CDN de Vercel cachee también el 404.

@@ -11,6 +11,15 @@ export async function prefetchProductImages(products) {
   if (_running) return;
   if (!Array.isArray(products) || !products.length) return;
   _running = true;
+  // Esperamos a que el navegador esté inactivo antes de empezar — así no
+  // competimos con el render inicial del catálogo. Fallback a setTimeout.
+  await new Promise(resolve => {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(resolve, { timeout: 2000 });
+    } else {
+      setTimeout(resolve, 800);
+    }
+  });
   // Para cada producto:
   //   - URL del template (la usan las tarjetas single-variant y los multi cuando
   //     no hay imagen específica de variante).
@@ -21,8 +30,11 @@ export async function prefetchProductImages(products) {
   for (const p of products) {
     if (p.templateId) urls.push(productImageUrl({ templateId: p.templateId }));
     if ((p.variantIds?.length || 0) > 1) {
+      // Variantes en tamaño pequeño (image_128) — el mosaico 2x2 las muestra
+      // en celdas chicas, con 128 ya se ven bien y la carga es ~10× más
+      // ligera que con 512.
       for (const vid of p.variantIds.slice(0, 4)) {
-        urls.push(productImageUrl(vid));
+        urls.push(productImageUrl(vid, { size: 128 }));
       }
     }
   }
