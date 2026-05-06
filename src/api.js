@@ -1,14 +1,22 @@
 // Wrapper de fetch para los endpoints /api/*.
-// Maneja el token de sesión (Bearer en localStorage).
+// Maneja el token de sesión (Bearer en sessionStorage). Usamos sessionStorage
+// y NO localStorage para que cada cierre del navegador / PWA invalide la
+// sesión y obligue a re-loguearse al volver a entrar.
+//
+// Migración: si encontramos un token viejo en localStorage (versiones previas
+// guardaban allí), lo borramos para que no se siga "auto-logueando".
 
 import { setOnlineFromError, setOnlineFromSuccess } from './lib/online';
 
 const TOKEN_KEY = 'vendly_token';
 
+// Limpieza one-shot del legacy localStorage.
+try { if (typeof localStorage !== 'undefined' && localStorage.getItem(TOKEN_KEY)) localStorage.removeItem(TOKEN_KEY); } catch {}
+
 export const auth = {
-  getToken: () => localStorage.getItem(TOKEN_KEY),
-  setToken: (t) => localStorage.setItem(TOKEN_KEY, t),
-  clear: () => localStorage.removeItem(TOKEN_KEY),
+  getToken: () => { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } },
+  setToken: (t) => { try { sessionStorage.setItem(TOKEN_KEY, t); } catch {} },
+  clear:    () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch {} },
 };
 
 async function req(path, opts = {}) {
