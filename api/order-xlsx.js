@@ -13,9 +13,11 @@ const STATE_LABEL = {
 };
 
 export default async function handler(req, res) {
-  if (!(await requireComercial(req, res))) return;
+  const c = await requireComercial(req, res);
+  if (!c) return;
   const id = parseInt(req.query?.id, 10);
   if (!id) return res.status(400).json({ error: 'Falta id' });
+  const hideTariff = !!c.portalPartnerId;
   if (MOCK_MODE) return res.status(503).json({ error: 'No disponible en modo mock' });
 
   try {
@@ -86,7 +88,7 @@ export default async function handler(req, res) {
     setKV('Fecha:',       fmtDate(o.date_order));
     setKV('Estado:',      STATE_LABEL[o.state] || o.state || '');
     if (o.client_order_ref) setKV('Ref. cliente:', o.client_order_ref);
-    if (o.pricelist_id?.[1]) setKV('Tarifa:', o.pricelist_id[1]);
+    if (!hideTariff && o.pricelist_id?.[1]) setKV('Tarifa:', o.pricelist_id[1]);
 
     // ── Cliente ──────────────────────────────────────────────
     if (partner) {

@@ -5,7 +5,7 @@ import { eur } from '../lib/format';
 
 const STATUS_LABEL = { borrador:'Por confirmar', pendiente:'Pendiente', fabricado:'Fabricado', facturado:'Facturado', cancelado:'Cancelado' };
 
-export function OrderDetailModal({ order, onClose }) {
+export function OrderDetailModal({ order, onClose, isPortal = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,10 +57,12 @@ export function OrderDetailModal({ order, onClose }) {
                   <div className="t-tiny">FECHA</div>
                   <div className="tabular">{data.order.date || '—'}</div>
                 </div>
-                <div>
-                  <div className="t-tiny">TARIFA</div>
-                  <div>{data.order.pricelistName || '—'}</div>
-                </div>
+                {!isPortal && (
+                  <div>
+                    <div className="t-tiny">TARIFA</div>
+                    <div>{data.order.pricelistName || '—'}</div>
+                  </div>
+                )}
                 {data.order.ref && (
                   <div>
                     <div className="t-tiny">REFERENCIA CLIENTE</div>

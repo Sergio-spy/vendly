@@ -21,9 +21,11 @@ const STATE_LABEL = {
 };
 
 export default async function handler(req, res) {
-  if (!(await requireComercial(req, res))) return;
+  const c = await requireComercial(req, res);
+  if (!c) return;
   const id = parseInt(req.query?.id, 10);
   if (!id) return res.status(400).json({ error: 'Falta id' });
+  const hideTariff = !!c.portalPartnerId;
   if (MOCK_MODE) return res.status(503).json({ error: 'No disponible en modo mock' });
 
   try {
@@ -93,7 +95,7 @@ export default async function handler(req, res) {
       doc.font('Helvetica').text(o.client_order_ref, col1X + 80, cursorY, valueStyle);
       cursorY += 16;
     }
-    if (o.pricelist_id?.[1]) {
+    if (!hideTariff && o.pricelist_id?.[1]) {
       doc.font('Helvetica-Bold').text('Tarifa:', col1X, cursorY, labelStyle);
       doc.font('Helvetica').text(o.pricelist_id[1], col1X + 60, cursorY, valueStyle);
       cursorY += 16;
