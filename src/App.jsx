@@ -373,7 +373,7 @@ export default function App() {
         <ApiKeyBanner health={health} isAdmin={salesman.role==='admin'}/>
         <div className="app-content">
           {route==='dashboard' && <Dashboard setRoute={setRoute} salesman={salesman} client={client} recentOrders={orders} clients={clients} promos={promos} products={products} myGoal={myGoal}/>}
-          {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'}/>}
+          {route==='catalog'   && <Catalog view={view} cart={cart} updateCartQty={updateCartQty} client={client} openProduct={setProductOpen} cardSize={cardSize} density={density} products={products} tariffMult={tariffMult} families={families} showStock={salesman.role==='admin'} isPortal={isPortal}/>}
           {route==='orders'    && <OrdersScreen orders={orders} clients={clients} comerciales={comerciales}
             onNew={() => {
               if (!client?.odooId) { setPendingNewOrder(true); setPickerOpen(true); }

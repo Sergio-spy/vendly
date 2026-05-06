@@ -59,23 +59,34 @@ export function LoginScreen({ onLogin }) {
         </div>
       </div>
 
-      <div style={{ background:'linear-gradient(135deg, var(--brand-700), var(--brand-500))', position:'relative', overflow:'hidden' }}>
-        <div style={{ position:'absolute', inset: 0, opacity: 0.15, backgroundImage:'radial-gradient(circle at 30% 20%, white 1px, transparent 2px), radial-gradient(circle at 70% 60%, white 1px, transparent 2px)', backgroundSize:'40px 40px' }}/>
-        <div style={{ position:'absolute', bottom: 56, left: 56, right: 56, color:'white' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing:'0.08em', textTransform:'uppercase', opacity:.8, marginBottom: 12 }}>Hoy en tu zona</div>
-          <div style={{ fontSize: 38, fontWeight: 600, letterSpacing:'-0.02em', lineHeight: 1.15, marginBottom: 28, textWrap:'balance' }}>
-            5 visitas planificadas, 2 cobros pendientes, 4 promociones activas.
+      <div style={{ background:'linear-gradient(135deg, var(--brand-700), var(--brand-500))', position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding: 56, color:'white' }}>
+        <div style={{ position:'absolute', inset: 0, opacity: 0.12, backgroundImage:'radial-gradient(circle at 30% 20%, white 1px, transparent 2px), radial-gradient(circle at 70% 60%, white 1px, transparent 2px)', backgroundSize:'40px 40px', pointerEvents:'none' }}/>
+
+        {/* Logo arriba */}
+        <div style={{ position:'relative' }}>
+          <img src="/palomatic-white.png" alt="Palomatic" style={{ height: 44, width:'auto', display:'block' }}/>
+        </div>
+
+        {/* Mensaje principal abajo */}
+        <div style={{ position:'relative' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing:'0.12em', textTransform:'uppercase', opacity:.85, marginBottom: 14 }}>
+            Aluminio que dura
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 14 }}>
-            {[
-              { v:'32.420 €', l:'Venta del mes' },
-              { v:'72%',      l:'del objetivo' },
-              { v:'124',      l:'artículos en catálogo' },
-            ].map((s,i) => (
-              <div key={i} style={{ background:'rgba(255,255,255,.12)', borderRadius: 12, padding: 14, backdropFilter:'blur(6px)' }}>
-                <div className="tabular" style={{ fontSize: 22, fontWeight: 700 }}>{s.v}</div>
-                <div style={{ fontSize: 12, opacity:.85 }}>{s.l}</div>
-              </div>
+          <div style={{ fontSize: 36, fontWeight: 600, letterSpacing:'-0.02em', lineHeight: 1.2, marginBottom: 28, textWrap:'balance', maxWidth: 420 }}>
+            Diseñamos y fabricamos palos y mangos para escobas, fregonas y recogedores.
+          </div>
+          <div className="hstack" style={{ gap: 10, flexWrap:'wrap' }}>
+            {['Anodizado', 'ECO', 'PRO'].map(t => (
+              <span key={t} style={{
+                background:'rgba(255,255,255,.14)',
+                border:'1px solid rgba(255,255,255,.2)',
+                padding:'6px 14px',
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                backdropFilter:'blur(6px)',
+              }}>{t}</span>
             ))}
           </div>
         </div>

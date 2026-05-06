@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductCard, ProductRow } from '../components/ProductCard';
 
-export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false }) {
+export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false, isPortal = false }) {
   const [familyKey, setFamilyKey] = useState('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
@@ -104,7 +104,7 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
             <option value="stock">Stock</option>
           </select>
           <div className="spacer"/>
-          <span className="muted t-small">{prods.length} artículos · Tarifa {tariff}</span>
+          <span className="muted t-small">{prods.length} artículos{!isPortal ? ` · Tarifa ${tariff}` : ''}</span>
         </div>
 
         <div className="scroll-y" style={{ flex:1, overflowY:'auto', padding: 22, background:'var(--bg)' }}>
