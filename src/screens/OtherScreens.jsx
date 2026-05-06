@@ -16,7 +16,7 @@ const KPI = {
   pendingCollections: 4150.20,
 };
 
-export function OrdersScreen({ orders = [], clients = [], comerciales = [], onNew, onRefresh, onView, onEdit, isAdmin = false }) {
+export function OrdersScreen({ orders = [], clients = [], comerciales = [], onNew, onRefresh, onView, onEdit, isAdmin = false, isPortal = false }) {
   // Map de partnerId → comercial.name para mostrar columna en admin.
   const tagToComercial = new Map(
     (comerciales || []).filter(co => co.odooTagId).map(co => [co.odooTagId, co.name])
@@ -48,11 +48,13 @@ export function OrdersScreen({ orders = [], clients = [], comerciales = [], onNe
   return (
     <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
       <div className="hstack" style={{ gap: 16 }}>
-        <div className="t-display">Pedidos</div>
+        <div className="t-display">{isPortal ? 'Mis pedidos' : 'Pedidos'}</div>
         <div className="spacer"/>
-        <button className="btn btn-secondary" onClick={refresh} disabled={busy}>
-          <Icon name="sync" size={14}/> {busy ? 'Sincronizando…' : 'Sincronizar a Odoo'}
-        </button>
+        {!isPortal && (
+          <button className="btn btn-secondary" onClick={refresh} disabled={busy}>
+            <Icon name="sync" size={14}/> {busy ? 'Sincronizando…' : 'Sincronizar a Odoo'}
+          </button>
+        )}
         <button className="btn btn-primary" onClick={onNew}><Icon name="plus" size={14}/> Nuevo pedido</button>
       </div>
       <div className="hstack" style={{ gap: 8 }}>

@@ -3,9 +3,8 @@ import { Icon } from './Icon';
 export function Sidebar({ route, setRoute, salesman, orderCount, onLogout, collapsed = false }) {
   const isAdmin = salesman.role === 'admin';
   const isPortal = !!salesman.portalPartnerId;
-  // En modo portal cliente solo aparecen 3 items: inicio, catálogo y pedidos.
+  // En modo portal cliente solo aparecen 2 items: catálogo y mis pedidos.
   const items = isPortal ? [
-    { id:'dashboard', label:'Inicio',     icon:'home' },
     { id:'catalog',   label:'Catálogo',   icon:'catalog' },
     { id:'orders',    label:'Mis pedidos',icon:'orders', badge: orderCount },
   ] : [

@@ -182,6 +182,13 @@ export default function App() {
     document.documentElement.setAttribute('data-density', density);
   }, [density]);
 
+  // En modo portal cliente la ruta dashboard no existe — redirigimos a catálogo.
+  useEffect(() => {
+    if (salesman?.portalPartnerId && (route === 'dashboard' || route === 'tariffs' || route === 'clients' || route === 'promos' || route === 'stock' || route === 'collect' || route === 'kpi' || route === 'admin' || route === 'admin-promos' || route === 'admin-kpi')) {
+      setRoute('catalog');
+    }
+  }, [salesman?.portalPartnerId, route]);
+
   // Cuando cambia el cliente seleccionado, recargamos los productos para que
   // los precios reflejen la tarifa del cliente (property_product_pricelist).
   // Sin cliente → tarifa por defecto "Comercial PVP" del backend.
@@ -373,7 +380,7 @@ export default function App() {
             }}
             onRefresh={async()=>{ const fresh = await api.orders(); setOrders(fresh); }}
             onView={(o)=>setOrderDetailOpen(o)} onEdit={onEditOrder}
-            isAdmin={salesman.role==='admin'}/>}
+            isAdmin={salesman.role==='admin'} isPortal={isPortal}/>}
           {route==='clients'   && <ClientsScreen clients={clients} tariffs={tariffs} onPick={c=>{setClient(c); setRoute('catalog');}} onRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }} isAdmin={salesman.role==='admin'}/>}
           {route==='tariffs'   && <TariffsScreen tariffs={tariffs} products={products} clients={clients}
             onClientsRefresh={async()=>{ const fresh = await api.clients(); setClients(fresh); }}
