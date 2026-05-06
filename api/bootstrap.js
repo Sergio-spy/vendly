@@ -65,11 +65,13 @@ export default async function handler(req, res) {
     }
 
     const clientDomain = [];
-    if (c.odooTagId) clientDomain.push(['category_id', 'in', [c.odooTagId]]);
+    if (c.portalPartnerId) clientDomain.push(['id', '=', c.portalPartnerId]);
+    else if (c.odooTagId) clientDomain.push(['category_id', 'in', [c.odooTagId]]);
     else if (c.role === 'admin') clientDomain.push(['category_id.name', '=ilike', 'Comercial%']);
 
     const orderDomain = [];
-    if (c.odooTagId) orderDomain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
+    if (c.portalPartnerId) orderDomain.push(['partner_id', '=', c.portalPartnerId]);
+    else if (c.odooTagId) orderDomain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
     else if (c.role === 'admin') orderDomain.push(['partner_id.category_id.name', '=ilike', 'Comercial%']);
 
     const productCountsDomain = [['sale_ok','=',true]];

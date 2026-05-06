@@ -144,7 +144,15 @@ export default function App() {
     setFamilies(data.families || []);
     setMyGoal(data.myGoal || null);
     setImageVersion(data.imageVersion || '');
-    setClient(null);
+    // En modo portal cliente, auto-seleccionamos al partner del comercial:
+    // siempre estamos pidiendo "como ese cliente". El selector de cliente no
+    // se muestra y el catálogo se carga ya con su tarifa.
+    if (salesman?.portalPartnerId) {
+      const me = (data.clients || []).find(c => c.odooId === salesman.portalPartnerId) || null;
+      setClient(me);
+    } else {
+      setClient(null);
+    }
     setCart({});
   }
 
@@ -334,6 +342,8 @@ export default function App() {
     </div>
   );
 
+  const isPortal = !!salesman?.portalPartnerId;
+
   return (
     <div className="app" data-collapsed={collapsed ? 'true' : 'false'}>
       <Sidebar route={route} setRoute={setRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={collapsed}/>
@@ -341,7 +351,7 @@ export default function App() {
         <Topbar
           title={titles[route]}
           client={client}
-          setClientPickerOpen={setPickerOpen}
+          setClientPickerOpen={isPortal ? () => {} : setPickerOpen}
           online={online}
           lastSync={mode === 'odoo' ? 'Odoo · live' : 'modo mock'}
           orderTotal={orderTotal}
@@ -390,7 +400,7 @@ export default function App() {
           setClient(c);
           if (pendingNewOrder) { setPendingNewOrder(false); setRoute('catalog'); }
         }}/>
-      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} onChangeClient={()=>setPickerOpen(true)} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
+      <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} onChangeClient={isPortal ? null : (()=>setPickerOpen(true))} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId}/>
       <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client} tariffName={client?.tariff || 'Comercial PVP'}/>
       <OrderDetailModal order={orderDetailOpen} onClose={()=>setOrderDetailOpen(null)}/>
       <OutboxModal open={outboxOpen} onClose={()=>setOutboxOpen(false)} clients={clients}/>

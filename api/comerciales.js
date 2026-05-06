@@ -21,6 +21,9 @@ function safe(c) {
     zone:      c.zone || '',
     role:      c.role,
     odooTagId: c.odooTagId,
+    // portalPartnerId: si está, este "comercial" es en realidad un cliente
+    // que entra al portal de auto-pedido. Solo ve catálogo + sus pedidos.
+    portalPartnerId: c.portalPartnerId || null,
     archived:  c.archived || false,
   };
 }
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
     const overrides = (await kvGet(COMERCIALES_KV_KEY)) || {};
 
     if (req.method === 'POST') {
-      const { id, login, password, name, firstName, initials, email, zone, role, odooTagId } = req.body || {};
+      const { id, login, password, name, firstName, initials, email, zone, role, odooTagId, portalPartnerId } = req.body || {};
       if (!id || !/^[a-z0-9_-]+$/i.test(id)) return res.status(400).json({ error: 'id inválido (alfanumérico)' });
       if (!login)    return res.status(400).json({ error: 'Falta login' });
       if (!password) return res.status(400).json({ error: 'Falta password' });
@@ -60,6 +63,7 @@ export default async function handler(req, res) {
         zone:         zone || 'Comercial',
         role:         role === 'admin' ? 'admin' : 'comercial',
         odooTagId:    odooTagId ? Number(odooTagId) : null,
+        portalPartnerId: portalPartnerId ? Number(portalPartnerId) : null,
         passwordHash: hashPassword(password),
         createdAt:    new Date().toISOString(),
       };
@@ -69,7 +73,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { id, login, password, name, firstName, initials, email, zone, role, odooTagId } = req.body || {};
+      const { id, login, password, name, firstName, initials, email, zone, role, odooTagId, portalPartnerId } = req.body || {};
       if (!id) return res.status(400).json({ error: 'Falta id' });
       const existsInFile = FILE_IDS.has(id);
       const ov = overrides[id] || (existsInFile ? { id } : null);
@@ -83,6 +87,7 @@ export default async function handler(req, res) {
       if (zone !== undefined)      ov.zone      = zone;
       if (role !== undefined)      ov.role      = role === 'admin' ? 'admin' : 'comercial';
       if (odooTagId !== undefined) ov.odooTagId = odooTagId ? Number(odooTagId) : null;
+      if (portalPartnerId !== undefined) ov.portalPartnerId = portalPartnerId ? Number(portalPartnerId) : null;
       if (password)                ov.passwordHash = hashPassword(password);
       ov.updatedAt = new Date().toISOString();
       delete ov.archived;

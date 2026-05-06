@@ -12,10 +12,12 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (MOCK_MODE) return res.status(200).json(ORDERS);
 
+      // Portal cliente: solo sus propios pedidos.
       // Comerciales: pedidos de sus clientes (su tag).
       // Admin: pedidos de cualquier cliente con etiqueta Comercial*.
       const domain = [];
-      if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
+      if (c.portalPartnerId) domain.push(['partner_id', '=', c.portalPartnerId]);
+      else if (c.odooTagId) domain.push(['partner_id.category_id', 'in', [c.odooTagId]]);
       else if (c.role === 'admin') domain.push(['partner_id.category_id.name', '=ilike', 'Comercial%']);
 
       const rows = await search_read('sale.order', domain,
@@ -26,7 +28,10 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { partnerId, lines, pricelistId } = req.body || {};
+      const body = req.body || {};
+      // Portal cliente: forzamos partner a su propio id, nunca aceptamos otro.
+      const partnerId = c.portalPartnerId || body.partnerId;
+      const { lines, pricelistId } = body;
       if (!partnerId) return res.status(400).json({ error: 'Falta partnerId' });
       if (!Array.isArray(lines) || lines.length === 0) return res.status(400).json({ error: 'Faltan líneas' });
 

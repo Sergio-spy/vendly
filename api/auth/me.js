@@ -8,5 +8,6 @@ export default async function handler(req, res) {
     initials: c.initials, zone: c.zone, email: c.email,
     role: c.role || 'comercial',
     odooTagId: c.odooTagId,
+    portalPartnerId: c.portalPartnerId || null,
   });
 }

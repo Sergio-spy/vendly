@@ -14,6 +14,7 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
   const [email, setEmail]         = useState('');
   const [role, setRole]           = useState('comercial');
   const [odooTagId, setOdooTagId] = useState('');
+  const [portalPartnerId, setPortalPartnerId] = useState('');
   const [busy, setBusy]           = useState(false);
   const [err, setErr]             = useState(null);
 
@@ -28,9 +29,10 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
       setEmail(comercial.email || '');
       setRole(comercial.role || 'comercial');
       setOdooTagId(comercial.odooTagId ?? '');
+      setPortalPartnerId(comercial.portalPartnerId ?? '');
     } else {
       setId(''); setLogin(''); setName(''); setZone('Comercial');
-      setEmail(''); setRole('comercial'); setOdooTagId('');
+      setEmail(''); setRole('comercial'); setOdooTagId(''); setPortalPartnerId('');
     }
   }, [open, comercial?.id, isEdit]);
 
@@ -55,6 +57,7 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
         email:     email.trim() || '',
         role,
         odooTagId: odooTagId ? Number(odooTagId) : null,
+        portalPartnerId: portalPartnerId ? Number(portalPartnerId) : null,
       };
       if (isEdit) await api.updateComercial(payload);
       else        await api.createComercial(payload);
@@ -114,6 +117,11 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
                 <input type="number" className="input" value={odooTagId} onChange={e=>setOdooTagId(e.target.value)} placeholder="ej. 35"/>
                 <div className="t-small muted">Sin etiqueta = ve todos los clientes (admin).</div>
               </div>
+            </div>
+            <div className="field">
+              <label>Portal cliente · res.partner ID Odoo</label>
+              <input type="number" className="input" value={portalPartnerId} onChange={e=>setPortalPartnerId(e.target.value)} placeholder="dejar vacío para comercial normal"/>
+              <div className="t-small muted">Si pones aquí el id de un cliente Odoo, este usuario entra en MODO PORTAL: solo ve catálogo + sus pedidos, sin tarifas ni admin. Útil para que un cliente final haga sus pedidos.</div>
             </div>
             <div className="field">
               <label>{isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label>

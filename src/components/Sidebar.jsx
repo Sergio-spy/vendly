@@ -2,7 +2,13 @@ import { Icon } from './Icon';
 
 export function Sidebar({ route, setRoute, salesman, orderCount, onLogout, collapsed = false }) {
   const isAdmin = salesman.role === 'admin';
-  const items = [
+  const isPortal = !!salesman.portalPartnerId;
+  // En modo portal cliente solo aparecen 3 items: inicio, catálogo y pedidos.
+  const items = isPortal ? [
+    { id:'dashboard', label:'Inicio',     icon:'home' },
+    { id:'catalog',   label:'Catálogo',   icon:'catalog' },
+    { id:'orders',    label:'Mis pedidos',icon:'orders', badge: orderCount },
+  ] : [
     { id:'dashboard', label:'Inicio',        icon:'home' },
     { id:'catalog',   label:'Catálogo',      icon:'catalog' },
     { id:'orders',    label:'Pedidos',       icon:'orders', badge: orderCount },
@@ -38,7 +44,7 @@ export function Sidebar({ route, setRoute, salesman, orderCount, onLogout, colla
         </button>
       ))}
 
-      {isAdmin && (
+      {isAdmin && !isPortal && (
         <>
           {!collapsed && <div className="sb-section">Sistema</div>}
           <button className="sb-item" data-active={String(route === 'admin')} onClick={() => setRoute('admin')} title={collapsed ? 'Admin' : undefined}>
