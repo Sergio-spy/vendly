@@ -13,7 +13,7 @@ const FAMILY_LABELS = { limp:'Limpiadores', desin:'Desinfectantes', celu:'Celulo
 // - Si tiene >1 variante: descarga las variantes desde /api/product-variants y
 //   muestra una lista, cada una con su propio stepper. El carrito guarda la
 //   variante elegida con su nombre y atributos.
-export function ProductModal({ product, onClose, cart = {}, updateCartQty, tariff, tariffMult = {}, showStock = false, client = null, tariffName = 'Comercial PVP' }) {
+export function ProductModal({ product, onClose, cart = {}, updateCartQty, tariff, tariffMult = {}, showStock = false, client = null, tariffName = 'Comercial PVP', isPortal = false }) {
   const p = product;
   const isMulti = p ? (p.variantCount ?? 1) > 1 : false;
   const singleVariantIdLocal = p ? (p.odooId ?? p.id) : null;
@@ -90,7 +90,7 @@ export function ProductModal({ product, onClose, cart = {}, updateCartQty, tarif
                 <div className="tabular" style={{ fontSize: 14, fontWeight: 600 }}>{p.ean || '—'}</div>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <div className="t-tiny">PRECIO {(tariffName || 'COMERCIAL PVP').toUpperCase()}</div>
+                <div className="t-tiny">{isPortal ? 'PRECIO' : `PRECIO ${(tariffName || 'COMERCIAL PVP').toUpperCase()}`}</div>
                 <div className="tabular bold" style={{ fontSize: 22, color: 'var(--brand-700)' }}>{eur(price)}</div>
                 {p.packaging && (
                   <div className="t-small" style={{ color: 'var(--ink-3)', marginTop: 4 }}>

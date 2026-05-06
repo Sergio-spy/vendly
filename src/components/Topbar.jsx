@@ -1,7 +1,7 @@
 import { Icon } from './Icon';
 import { eur } from '../lib/format';
 
-export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, orderUnits = 0, onToggleSidebar, pendingOutbox = 0, onOpenOutbox }) {
+export function Topbar({ title, client, setClientPickerOpen, online, lastSync, orderTotal, onOpenOrder, orderLines, orderUnits = 0, onToggleSidebar, pendingOutbox = 0, onOpenOutbox, isPortal = false }) {
   // Estado del badge de conectividad: prioriza informar de pedidos pendientes.
   const offline = !online;
   const showWarn = offline || pendingOutbox > 0;
@@ -35,7 +35,7 @@ export function Topbar({ title, client, setClientPickerOpen, online, lastSync, o
             <div className="avatar">{client.code.slice(-2)}</div>
             <div className="pill-text">
               <span className="name">{client.name}</span>
-              <span className="meta">#{client.code} · {client.tariff} · {client.city}</span>
+              <span className="meta">{[client.code && `#${client.code}`, !isPortal && client.tariff, client.city].filter(Boolean).join(' · ')}</span>
             </div>
           </>
         ) : (

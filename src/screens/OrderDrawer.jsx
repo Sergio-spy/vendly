@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon';
 import { ProductImage } from '../components/ProductCard';
 import { eur } from '../lib/format';
 
-export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, onChangeClient, tariff: tariffProp, tariffMult = {}, editing = false }) {
+export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConfirm, onChangeClient, tariff: tariffProp, tariffMult = {}, editing = false, isPortal = false }) {
   const [discount, setDiscount] = useState(0);
   if (!open) return null;
   const tariff = tariffProp || client?.tariff || 'T2';
@@ -26,7 +26,7 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
           <div>
             <div className="t-tiny">{editing ? 'Editando pedido' : 'Pedido en curso'}</div>
             <div className="t-h1">{client ? client.name : 'Sin cliente'}</div>
-            <div className="t-small">{client?.code ? `#${client.code} · ` : ''}{client ? `Tarifa ${tariff}` : ''}{client?.paymentTerm ? ` · ${client.paymentTerm}` : ''}</div>
+            <div className="t-small">{[client?.code && `#${client.code}`, client && !isPortal && `Tarifa ${tariff}`, client?.paymentTerm].filter(Boolean).join(' · ')}</div>
           </div>
           <div className="spacer"/>
           {onChangeClient && (
