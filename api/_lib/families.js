@@ -103,10 +103,13 @@ export function resolveFamilies(odooCategories, productsByCategId = new Map()) {
   const rootOrder = [];
   const seenRoots = new Set();
   for (const w of wanted) {
-    const cat = odooCategories.find(c => {
-      const cn = stripDiacritics(c.complete_name || c.name || '').toLowerCase();
-      return cn.endsWith(w.norm) || cn === w.norm;
-    });
+    // Prioridad: 1) match exacto del complete_name normalizado, 2) endsWith
+    // (fallback para paths jerárquicos tipo "Palos Aluminio/Anodizado").
+    // Sin esta prioridad, "Recogedores" matchea con "Escobas y recogedores"
+    // (acaba en "recogedores") en lugar de la categoría "Recogedores" pura.
+    const norm = (c) => stripDiacritics(c.complete_name || c.name || '').toLowerCase();
+    let cat = odooCategories.find(c => norm(c) === w.norm);
+    if (!cat) cat = odooCategories.find(c => norm(c).endsWith(w.norm));
     if (!cat) continue;
 
     for (let i = 0; i < w.segments.length; i++) ensureNode(w.segments, i);
