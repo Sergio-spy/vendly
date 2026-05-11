@@ -142,6 +142,9 @@ export const api = {
   imagesVersion:      () => req('/images-version'),
   bumpImagesVersion:  () => req('/images-version', { method:'POST' }),
 
+  // Magic link de acceso (admin)
+  magicLink: (comercialId) => req('/auth/magic-link', { method:'POST', body: JSON.stringify({ comercialId }) }),
+
   // Mutaciones
   createOrder:  (payload) => req('/orders',  { method:'POST', body: JSON.stringify(payload) }),
   updateOrder:  (id, payload) => req(`/order?id=${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify(payload) }),

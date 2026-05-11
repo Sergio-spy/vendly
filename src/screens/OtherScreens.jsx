@@ -885,6 +885,18 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
     try { await api.deleteComercial(s.id); reloadComerciales(); }
     catch (e) { alert(e.message); }
   };
+  const onMagicLink = async (s) => {
+    try {
+      const r = await api.magicLink(s.id);
+      // Copia al portapapeles + muestra el URL para enviar manualmente.
+      try { await navigator.clipboard.writeText(r.url); } catch {}
+      window.prompt(
+        `Enlace de acceso para ${s.name} (válido 15 min). Copiado al portapapeles.\n\n` +
+        `Mándaselo por WhatsApp / email. Al abrirlo en su dispositivo, entrará directamente sin escribir contraseña.`,
+        r.url
+      );
+    } catch (e) { alert('No se pudo generar el enlace: ' + e.message); }
+  };
 
   // Conteo de clientes por comercial usando su odooTagId.
   // Como /api/clients del admin no incluye los tags por cliente, lo dejamos
@@ -951,7 +963,10 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
                       )}
                     </td>
                     <td style={{ whiteSpace:'nowrap' }}>
-                      <button className="btn btn-ghost btn-sm" title="Editar comercial" onClick={()=>{ setCoEditing(s); setCoFormOpen(true); }}>
+                      <button className="btn btn-ghost btn-sm" title="Enlace de acceso (sin contraseña, 15 min)" onClick={()=>onMagicLink(s)}>
+                        <Icon name="sync" size={14}/>
+                      </button>
+                      <button className="btn btn-ghost btn-sm" title="Editar comercial" onClick={()=>{ setCoEditing(s); setCoFormOpen(true); }} style={{ marginLeft: 4 }}>
                         <Icon name="edit" size={14}/>
                       </button>
                       <button className="btn btn-ghost btn-sm" title="Archivar comercial" onClick={()=>onArchiveComercial(s)} style={{ marginLeft: 4, color:'var(--danger)' }}>
