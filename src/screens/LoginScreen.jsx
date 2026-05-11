@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, auth } from '../api';
+import { PasswordInput } from '../components/PasswordInput';
 
 export function LoginScreen({ onLogin }) {
   const [user, setUser] = useState('');
@@ -43,7 +44,7 @@ export function LoginScreen({ onLogin }) {
           </div>
           <div className="field">
             <label>Contraseña</label>
-            <input className="input lg" type="password" value={pass} onChange={e=>setPass(e.target.value)} required disabled={busy}/>
+            <PasswordInput className="input lg" value={pass} onChange={e=>setPass(e.target.value)} required disabled={busy}/>
           </div>
         </div>
         {err && (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
+import { PasswordInput } from '../components/PasswordInput';
 import { api } from '../api';
 
 // Modal de alta o edición de comercial. En edición, password es opcional
@@ -125,7 +126,7 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
             </div>
             <div className="field">
               <label>{isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label>
-              <input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder={isEdit ? 'Dejar vacío para no cambiar' : 'mín. 4 caracteres'}/>
+              <PasswordInput className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder={isEdit ? 'Dejar vacío para no cambiar' : 'mín. 4 caracteres'}/>
             </div>
           </div>
         </div>
