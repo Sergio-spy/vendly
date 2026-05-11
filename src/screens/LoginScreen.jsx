@@ -40,11 +40,11 @@ export function LoginScreen({ onLogin }) {
         <div className="vstack" style={{ gap: 14, marginBottom: 18 }}>
           <div className="field">
             <label>Usuario</label>
-            <input className="input lg" value={user} onChange={e=>setUser(e.target.value)} autoFocus required disabled={busy}/>
+            <input className="input lg" value={user} onChange={e=>setUser(e.target.value)} autoFocus required disabled={busy} autoComplete="username" name="username" inputMode="text" autoCapitalize="none" autoCorrect="off" spellCheck={false}/>
           </div>
           <div className="field">
             <label>Contraseña</label>
-            <PasswordInput className="input lg" value={pass} onChange={e=>setPass(e.target.value)} required disabled={busy}/>
+            <PasswordInput className="input lg" value={pass} onChange={e=>setPass(e.target.value)} required disabled={busy} autoComplete="current-password" name="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}/>
           </div>
         </div>
         {err && (

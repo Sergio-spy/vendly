@@ -126,7 +126,7 @@ export function ComercialForm({ open, mode = 'create', comercial, onClose, onSav
             </div>
             <div className="field">
               <label>{isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label>
-              <PasswordInput className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder={isEdit ? 'Dejar vacío para no cambiar' : 'mín. 4 caracteres'}/>
+              <PasswordInput className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder={isEdit ? 'Dejar vacío para no cambiar' : 'mín. 4 caracteres'} autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}/>
             </div>
           </div>
         </div>
