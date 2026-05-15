@@ -4,6 +4,9 @@ import { ProductCard, ProductRow } from '../components/ProductCard';
 
 export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false, isPortal = false }) {
   const [familyKey, setFamilyKey] = useState('all');
+  const [railOpen, setRailOpen] = useState(false);
+  // Cuando se elige una familia, en móvil cerramos el drawer del rail.
+  const pickFamily = (k) => { pickFamily(k); setRailOpen(false); };
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
   const [onlyOffer, setOnlyOffer] = useState(false);
@@ -48,12 +51,12 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
   });
 
   return (
-    <div className="catalog-layout" style={{ display:'grid', gridTemplateColumns:'240px 1fr', height:'100%' }}>
+    <div className="catalog-layout" data-rail-open={railOpen ? 'true' : 'false'} style={{ display:'grid', gridTemplateColumns:'240px 1fr', height:'100%' }} onClick={(e)=>{ if (railOpen && e.target === e.currentTarget) setRailOpen(false); }}>
       <aside className="catalog-rail" style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 12, overflowY:'auto' }}>
         <div className="t-tiny" style={{ marginBottom: 8 }}>Familias</div>
         <div className="vstack" style={{ gap: 0 }}>
           <button
-            onClick={()=>setFamilyKey('all')}
+            onClick={()=>pickFamily('all')}
             className="sb-item rail-item"
             data-active={String(familyKey==='all')}
             title="Todas">
@@ -64,7 +67,7 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
             const leafCount = !f.hasChildren ? (productsByCategId.get(f.odooId) || 0) : null;
             return (
               <button key={f.key}
-                onClick={()=>setFamilyKey(f.key)}
+                onClick={()=>pickFamily(f.key)}
                 className="sb-item rail-item"
                 data-active={String(familyKey===f.key)}
                 data-parent={String(f.hasChildren)}
@@ -94,6 +97,9 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
 
       <div style={{ display:'flex', flexDirection:'column', minHeight: 0 }}>
         <div className="hstack catalog-topbar" style={{ padding:'14px 22px', borderBottom:'1px solid var(--border)', background:'var(--surface)', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm catalog-rail-toggle" onClick={()=>setRailOpen(v=>!v)}>
+            <Icon name="filter" size={14}/> Familias
+          </button>
           <div className="input-wrap" style={{ flex:1, maxWidth: 420 }}>
             <Icon name="search" size={16} className="lead" style={{ position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color:'var(--ink-4)' }}/>
             <input className="input input-search" placeholder="Buscar artículo, SKU, marca…" value={q} onChange={e=>setQ(e.target.value)}/>

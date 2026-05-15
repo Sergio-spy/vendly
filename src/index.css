@@ -611,6 +611,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 
 .fade-in { animation: fadeIn .2s ease-out; }
 
+/* Botón "Familias" del catálogo: visible solo en móvil (oculto en desktop) */
+.catalog-rail-toggle { display: none; }
+
 /* ──────────────────────────────────────────────────────────────────
  * Responsive · móvil (≤ 768 px)
  * Estrategia: el sidebar pasa a ser un drawer que se desliza desde
@@ -692,9 +695,31 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   .app-content { padding: 0; overflow-x: hidden; }
   .app-main { min-width: 0; overflow-x: hidden; }
 
-  /* Tablas con scroll horizontal cuando no caben en el ancho del móvil */
-  .card { overflow-x: auto; }
-  .tbl { min-width: max-content; }
+  /* Tablas: en móvil cada fila se convierte en una "card" vertical
+   * (cada celda apilada). Se oculta la cabecera porque pierde sentido
+   * en este formato. Esto evita scroll horizontal en Pedidos / Cobros /
+   * Clientes y similar. */
+  .tbl, .tbl > tbody, .tbl > thead { display: block; width: 100%; }
+  .tbl > thead { display: none; }
+  .tbl > tbody > tr {
+    display: flex; flex-direction: column;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    gap: 4px;
+    width: 100%;
+  }
+  .tbl > tbody > tr:last-child { border-bottom: none; }
+  .tbl > tbody > tr > td {
+    display: block;
+    padding: 0 !important;
+    border: none !important;
+    width: auto !important;
+    text-align: left !important;
+  }
+  .tbl > tbody > tr > td:empty { display: none; }
+  .tbl > tbody > tr > td.num { text-align: left !important; }
+  /* Card .card que envuelve tabla: quita su padding interno y overflow */
+  .card { overflow-x: hidden; }
 
   /* Reducir padding de pantallas con padding inline grande (28-30px) */
   .scroll-y { padding: 14px !important; }
@@ -713,10 +738,34 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     gap: 8px !important;
   }
 
-  /* Catalog: el rail de familias se oculta en mobile.
-   * Se accede a familias desde un dropdown en la barra de búsqueda. */
+  /* Fila de stats (hstack con cards directos): apilar verticalmente. Al
+   * ocupar 100% del ancho ya entra la cifra grande con su font original. */
+  .page-wrap > .hstack { flex-wrap: wrap; gap: 10px !important; }
+  .page-wrap > .hstack > .card { flex: 1 1 100% !important; min-width: 0; }
+
+  /* Catalog: el rail de familias se convierte en drawer overlay con un
+   * botón "Familias" en la cabecera del catálogo que lo abre. */
   .catalog-layout { grid-template-columns: 1fr !important; }
   .catalog-rail { display: none !important; }
+  .catalog-layout[data-rail-open="true"] .catalog-rail {
+    display: block !important;
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: 280px; z-index: 60;
+    box-shadow: var(--sh-3);
+    background: var(--surface);
+    animation: slideFromLeft .22s cubic-bezier(.2,.7,.3,1);
+    transform: translateX(0);
+  }
+  @keyframes slideFromLeft {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+  }
+  .catalog-layout[data-rail-open="true"]::before {
+    content: ''; position: fixed; inset: 0;
+    background: rgba(20,24,26,0.5); z-index: 55;
+    animation: fadeIn .15s ease-out;
+  }
+  .catalog-rail-toggle { display: inline-flex !important; order: -1; }
   .catalog-topbar { padding: 10px 14px !important; gap: 8px !important; }
   .catalog-topbar .input-wrap { flex: 1 1 100% !important; max-width: 100% !important; }
   .catalog-topbar select { flex: 1 1 auto !important; width: auto !important; }
