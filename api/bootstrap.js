@@ -145,8 +145,10 @@ export default async function handler(req, res) {
     const allVariantIds = [...new Set(productRows.flatMap(r => r.product_variant_ids || []))];
     const defaultPricelistId = await resolvePricelistId(null);
     // En bootstrap siempre se usa Comercial PVP (sin cliente). Si el usuario
-    // no es admin, se aplica el recargo de visualización del 15%.
-    const markup = c.role !== 'admin' ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
+    // es comercial (NO admin, NO portal-cliente), se aplica el recargo de
+    // visualización del 15%. El portal-cliente ES el cliente final, así que
+    // ve siempre el precio real (sin markup).
+    const markup = (c.role !== 'admin' && !c.portalPartnerId) ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
     const [priceByVariant, variantInfoRows, packagingByTpl] = await Promise.all([
       // Precios para TODAS las variantes para poder calcular el mínimo por template.
       computePrices(defaultPricelistId, allVariantIds, null),

@@ -55,7 +55,8 @@ export default async function handler(req, res) {
         const priceByVariant = await computePrices(plId, variantIds, null);
         // Solo Comercial PVP se infla un 15% para no-admin (las otras tarifas
         // son las que el comercial vende a sus clientes y deben verse reales).
-        const markup = (c.role !== 'admin' && plId === pvpId) ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
+        // Portal-cliente no recibe markup (es el cliente final).
+        const markup = (c.role !== 'admin' && !c.portalPartnerId && plId === pvpId) ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
         for (const [tId, vId] of variantIdByTemplate.entries()) {
           if (priceByVariant.has(vId)) prices[tId][plId] = priceByVariant.get(vId) * markup;
         }

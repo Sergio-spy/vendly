@@ -77,8 +77,10 @@ export default async function handler(req, res) {
     ]);
     const variantInfoById = new Map(variantInfoRows.map(v => [v.id, v]));
     // Recargo de visualización: si la tarifa aplicada es Comercial PVP y el
-    // usuario NO es admin, ocultamos el PVP real subiéndolo un 15%.
-    const inflate = c.role !== 'admin' && pricelistId && pvpId && pricelistId === pvpId;
+    // usuario es comercial (NO admin, NO portal-cliente), ocultamos el PVP
+    // real subiéndolo un 15%. El portal-cliente ES el cliente final y debe
+    // ver siempre el precio real de su tarifa.
+    const inflate = c.role !== 'admin' && !c.portalPartnerId && pricelistId && pvpId && pricelistId === pvpId;
     const markup = inflate ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
 
     const items = rows.map(r => {

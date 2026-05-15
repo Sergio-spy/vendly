@@ -31,7 +31,8 @@ export default async function handler(req, res) {
     ]);
     const priceByVariant = await computePrices(pricelistId, rows.map(r => r.id), partnerId);
     // Recargo de visualización si la tarifa aplicada es Comercial PVP y el usuario no es admin.
-    const inflate = c.role !== 'admin' && pricelistId && pvpId && pricelistId === pvpId;
+    // Portal-cliente (c.portalPartnerId set) NO recibe markup: es el cliente final.
+    const inflate = c.role !== 'admin' && !c.portalPartnerId && pricelistId && pvpId && pricelistId === pvpId;
     const markup = inflate ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
 
     const variants = rows.map(r => {
