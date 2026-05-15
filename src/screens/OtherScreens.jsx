@@ -46,7 +46,7 @@ export function OrdersScreen({ orders = [], clients = [], comerciales = [], onNe
     try { await onRefresh(); } finally { setBusy(false); }
   };
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack" style={{ gap: 16 }}>
         <div className="t-display">{isPortal ? 'Mis pedidos' : 'Pedidos'}</div>
         <div className="spacer"/>
@@ -121,7 +121,7 @@ export function ClientsScreen({ clients = [], tariffs = [], onPick, onRefresh, i
   };
   const filt = clients.filter(c => (c.name+c.code+c.city).toLowerCase().includes(q.toLowerCase()));
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack">
         <div className="t-display">Clientes</div>
         <div className="spacer"/>
@@ -212,7 +212,7 @@ export function TariffsScreen({ tariffs = [], products = [], clients = [], onCli
     return acc;
   }, {});
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack">
         <div className="t-display">Tarifas</div>
         <div className="spacer"/>
@@ -421,7 +421,7 @@ function PricelistComparator({ products = [], tariffs = [] }) {
 
 export function PromosScreen({ promos = [], products = [] }) {
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="t-display">Promociones activas</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
         {promos.map(pr => {
@@ -449,7 +449,7 @@ export function StockScreen({ products = [] }) {
   const [q, setQ] = useState('');
   const filt = products.filter(p => (p.name+p.sku).toLowerCase().includes(q.toLowerCase()));
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack"><div className="t-display">Stock de almacén</div><div className="spacer"/><span className="tag tag-success"><Icon name="cloud" size={11}/> en tiempo real</span></div>
       <div className="input-wrap" style={{ maxWidth: 420 }}>
         <Icon name="search" size={16} className="lead" style={{ position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color:'var(--ink-4)' }}/>
@@ -506,7 +506,7 @@ export function CollectScreen({ clients = [], comerciales = [], isAdmin = false 
     : pendAll;
   const total = pend.reduce((a,c)=>a+c.balance,0);
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack">
         <div className="t-display">Cobros pendientes</div>
         <div className="spacer"/>
@@ -686,7 +686,7 @@ export function KpiScreen({ clients = [], products = [] }) {
   const labelBest  = range === 'day' ? 'MEJOR DÍA'    : 'MEJOR MES';
 
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="t-display">Mi rendimiento</div>
       <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap: 16 }}>
         <div className="card" style={{ padding: 22 }}>
@@ -907,7 +907,7 @@ export function AdminScreen({ mode = 'mock', health = null, products = [], clien
   const daysLeft = health?.apiKeyDaysLeft;
 
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 20 }}>
+    <div className="page-wrap" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="hstack">
         <div className="t-display">Administración</div>
         <div className="spacer"/>

@@ -700,6 +700,19 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   .scroll-y { padding: 14px !important; }
   .page-wrap { padding: 14px !important; gap: 16px !important; }
 
+  /* Stack vertical de grids no-responsive en móvil. Aplicamos a cualquier
+   * grid inline (cards con muchas columnas, grids 2fr 1fr, etc.) excepto
+   * los que ya tienen su propia regla responsive. Es agresivo pero evita
+   * que el contenido se vea aplastado en pantallas estrechas. */
+  .page-wrap [style*="grid-template-columns"]:not(.catalog-layout):not(.dash-row):not(.dash-row-2):not(.responsive-keep-grid),
+  .page-wrap .card[style*="grid"]:not(.responsive-keep-grid) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
   /* Catalog: el rail de familias se oculta en mobile.
    * Se accede a familias desde un dropdown en la barra de búsqueda. */
   .catalog-layout { grid-template-columns: 1fr !important; }

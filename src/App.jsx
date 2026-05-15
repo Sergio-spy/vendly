@@ -33,6 +33,18 @@ export default function App() {
     try { return localStorage.getItem('vendly_sidebar_collapsed') === '1'; } catch { return false; }
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Detecta viewport mobile (≤768px) para forzar comportamiento de sidebar
+  // como drawer y mostrar texto de items aunque desktop tenga collapsed=true.
+  const [isMobile, setIsMobile] = useState(() => {
+    try { return window.matchMedia('(max-width: 768px)').matches; } catch { return false; }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
   // En desktop el burger colapsa el sidebar a 68px. En móvil abre/cierra el
   // drawer overlay. Detectamos por viewport en el momento del click.
   const toggleSidebar = () => {
@@ -368,7 +380,7 @@ export default function App() {
       // (sobre el scrim, que está en el ::before del .app), cerrar.
       if (mobileNavOpen && e.target === e.currentTarget) setMobileNavOpen(false);
     }}>
-      <Sidebar route={route} setRoute={goRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={collapsed}/>
+      <Sidebar route={route} setRoute={goRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={isMobile ? false : collapsed}/>
       <div className="app-main">
         <Topbar
           title={titles[route]}
