@@ -141,18 +141,20 @@ export default async function handler(req, res) {
       const vId = (r.product_variant_ids || [])[0];
       if (vId) variantByTemplate.set(r.id, vId);
     }
-    const variantIds = [...variantByTemplate.values()];
+    const firstVariantIds = [...variantByTemplate.values()];
+    const allVariantIds = [...new Set(productRows.flatMap(r => r.product_variant_ids || []))];
     const defaultPricelistId = await resolvePricelistId(null);
     // En bootstrap siempre se usa Comercial PVP (sin cliente). Si el usuario
     // no es admin, se aplica el recargo de visualización del 15%.
     const markup = c.role !== 'admin' ? COMERCIAL_PVP_MARKUP_FOR_SALES : 1;
     const [priceByVariant, variantInfoRows, packagingByTpl] = await Promise.all([
-      computePrices(defaultPricelistId, variantIds, null),
-      variantIds.length
+      // Precios para TODAS las variantes para poder calcular el mínimo por template.
+      computePrices(defaultPricelistId, allVariantIds, null),
+      firstVariantIds.length
         ? search_read('product.product',
-            [['id','in', variantIds]],
+            [['id','in', firstVariantIds]],
             ['id','default_code','barcode','x_studio_referencia'],
-            { limit: variantIds.length })
+            { limit: firstVariantIds.length })
         : Promise.resolve([]),
       resolvePackagings(productRows),
     ]);
@@ -165,10 +167,15 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
-      const vId = variantByTemplate.get(r.id);
-      if (vId) {
-        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId) * markup;
-        const v = variantInfoById.get(vId);
+      // Precio = mínimo de todas las variantes (consistente con el modal).
+      const vids = r.product_variant_ids || [];
+      const prices = vids.map(v => priceByVariant.get(v)).filter(x => typeof x === 'number');
+      if (prices.length) m.pvp = Math.min(...prices) * markup;
+
+      // SKU/EAN fallback desde la primera variante.
+      const firstV = variantByTemplate.get(r.id);
+      if (firstV) {
+        const v = variantInfoById.get(firstV);
         if (v) {
           if (!m.sku) m.sku = v.x_studio_referencia || v.default_code || '';
           if (!m.ean && v.barcode) m.ean = v.barcode;

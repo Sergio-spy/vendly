@@ -53,22 +53,24 @@ export default async function handler(req, res) {
     // Aplicar tarifa: del cliente si viene partnerId, si no la default ("Comercial PVP").
     const partnerId = parseInt(req.query?.partnerId, 10) || null;
     const pricelistId = await resolvePricelistId(partnerId);
-    // Tomamos la primera variante de cada template como representante para el precio
-    // y para rellenar SKU/EAN si el template los tiene vacíos (ocurre cuando solo
-    // están definidos a nivel de variante).
+    // Primera variante de cada template para rellenar SKU/EAN si el template
+    // los tiene vacíos. Para el precio de la tarjeta usamos el MÍNIMO de
+    // todas las variantes — así el precio mostrado nunca es mayor al que el
+    // comercial verá luego al abrir el modal de variantes.
     const variantByTemplate = new Map();
     for (const r of rows) {
       const vId = (r.product_variant_ids || [])[0];
       if (vId) variantByTemplate.set(r.id, vId);
     }
-    const variantIds = [...variantByTemplate.values()];
+    const firstVariantIds = [...variantByTemplate.values()];
+    const allVariantIds = [...new Set(rows.flatMap(r => r.product_variant_ids || []))];
     const [priceByVariant, variantInfoRows, pvpId, packagingByTpl] = await Promise.all([
-      computePrices(pricelistId, variantIds, partnerId),
-      variantIds.length
+      computePrices(pricelistId, allVariantIds, partnerId),
+      firstVariantIds.length
         ? search_read('product.product',
-            [['id','in', variantIds]],
+            [['id','in', firstVariantIds]],
             ['id','default_code','barcode','x_studio_referencia'],
-            { limit: variantIds.length })
+            { limit: firstVariantIds.length })
         : Promise.resolve([]),
       getComercialPvpId(),
       resolvePackagings(rows),
@@ -86,10 +88,15 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
-      const vId = variantByTemplate.get(r.id);
-      if (vId) {
-        if (priceByVariant.has(vId)) m.pvp = priceByVariant.get(vId) * markup;
-        const v = variantInfoById.get(vId);
+      // Precio = mínimo de todas las variantes del template.
+      const vids = r.product_variant_ids || [];
+      const prices = vids.map(v => priceByVariant.get(v)).filter(x => typeof x === 'number');
+      if (prices.length) m.pvp = Math.min(...prices) * markup;
+
+      // SKU/EAN fallback desde la primera variante.
+      const firstV = variantByTemplate.get(r.id);
+      if (firstV) {
+        const v = variantInfoById.get(firstV);
         if (v) {
           if (!m.sku) m.sku = v.x_studio_referencia || v.default_code || '';
           if (!m.ean && v.barcode) m.ean = v.barcode;
