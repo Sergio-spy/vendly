@@ -32,11 +32,22 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('vendly_sidebar_collapsed') === '1'; } catch { return false; }
   });
-  const toggleCollapsed = () => setCollapsed(c => {
-    const next = !c;
-    try { localStorage.setItem('vendly_sidebar_collapsed', next ? '1' : '0'); } catch {}
-    return next;
-  });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // En desktop el burger colapsa el sidebar a 68px. En móvil abre/cierra el
+  // drawer overlay. Detectamos por viewport en el momento del click.
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+      setMobileNavOpen(v => !v);
+      return;
+    }
+    setCollapsed(c => {
+      const next = !c;
+      try { localStorage.setItem('vendly_sidebar_collapsed', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
+  // Helper para envolver setRoute: en móvil, al elegir ruta cerramos el drawer.
+  const goRoute = (r) => { setRoute(r); setMobileNavOpen(false); };
 
   const [salesman, setSalesman] = useState(null); // null = no logueado
   const [bootDone, setBootDone] = useState(false);
@@ -352,8 +363,12 @@ export default function App() {
   const isPortal = !!salesman?.portalPartnerId;
 
   return (
-    <div className="app" data-collapsed={collapsed ? 'true' : 'false'}>
-      <Sidebar route={route} setRoute={setRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={collapsed}/>
+    <div className="app" data-collapsed={collapsed ? 'true' : 'false'} data-mobile-nav={mobileNavOpen ? 'open' : 'closed'} onClick={(e) => {
+      // Si el drawer móvil está abierto y se hace click fuera del sidebar
+      // (sobre el scrim, que está en el ::before del .app), cerrar.
+      if (mobileNavOpen && e.target === e.currentTarget) setMobileNavOpen(false);
+    }}>
+      <Sidebar route={route} setRoute={goRoute} salesman={salesman} orderCount={orders.filter(o=>o.status==='borrador').length} onLogout={onLogout} collapsed={collapsed}/>
       <div className="app-main">
         <Topbar
           title={titles[route]}
@@ -365,7 +380,7 @@ export default function App() {
           orderLines={lines.length}
           orderUnits={orderUnits}
           onOpenOrder={()=>setOrderOpen(true)}
-          onToggleSidebar={toggleCollapsed}
+          onToggleSidebar={toggleSidebar}
           pendingOutbox={pendingOutbox}
           onOpenOutbox={()=>setOutboxOpen(true)}
           isPortal={isPortal}

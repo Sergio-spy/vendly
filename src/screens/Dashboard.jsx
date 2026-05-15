@@ -28,7 +28,7 @@ export function Dashboard({ setRoute, salesman, recentOrders = [], clients = [],
   const pendingClients = clients.filter(c => (c.balance || 0) > 0);
   const pendingCollections = pendingClients.reduce((a, c) => a + c.balance, 0);
   return (
-    <div style={{ padding: 28, display:'flex', flexDirection:'column', gap: 24 }}>
+    <div className="page-wrap" style={{ padding: 28, display:'flex', flexDirection:'column', gap: 24 }}>
       <div>
         <div className="t-tiny" style={{ marginBottom: 6 }}>Buenos días, {salesman.firstName}</div>
         <div className="t-display">Panel de hoy</div>

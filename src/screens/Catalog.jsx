@@ -48,8 +48,8 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
   });
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'240px 1fr', height:'100%' }}>
-      <aside style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 12, overflowY:'auto' }}>
+    <div className="catalog-layout" style={{ display:'grid', gridTemplateColumns:'240px 1fr', height:'100%' }}>
+      <aside className="catalog-rail" style={{ borderRight:'1px solid var(--border)', background:'var(--surface)', padding: 12, overflowY:'auto' }}>
         <div className="t-tiny" style={{ marginBottom: 8 }}>Familias</div>
         <div className="vstack" style={{ gap: 0 }}>
           <button
@@ -93,7 +93,7 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
       </aside>
 
       <div style={{ display:'flex', flexDirection:'column', minHeight: 0 }}>
-        <div className="hstack" style={{ padding:'14px 22px', borderBottom:'1px solid var(--border)', background:'var(--surface)', gap: 10 }}>
+        <div className="hstack catalog-topbar" style={{ padding:'14px 22px', borderBottom:'1px solid var(--border)', background:'var(--surface)', gap: 10, flexWrap: 'wrap' }}>
           <div className="input-wrap" style={{ flex:1, maxWidth: 420 }}>
             <Icon name="search" size={16} className="lead" style={{ position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color:'var(--ink-4)' }}/>
             <input className="input input-search" placeholder="Buscar artículo, SKU, marca…" value={q} onChange={e=>setQ(e.target.value)}/>

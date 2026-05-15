@@ -426,6 +426,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   .dash-row > .dash-card-wide { grid-column: 1 / -1; }
   .dash-row-2 { grid-template-columns: 1fr; }
 }
+@media (max-width: 640px) {
+  .dash-row { grid-template-columns: 1fr; }
+}
 
 /* Tarjeta producto · vista mosaico hero (catálogo grid) */
 .prod-card-hero {
@@ -607,3 +610,110 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .empty-ic { width: 56px; height: 56px; border-radius: var(--r-3); background: var(--surface-2); display: grid; place-items: center; margin: 0 auto 14px; color: var(--ink-4); }
 
 .fade-in { animation: fadeIn .2s ease-out; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Responsive · móvil (≤ 768 px)
+ * Estrategia: el sidebar pasa a ser un drawer que se desliza desde
+ * la izquierda como overlay (no comprime el contenido). El burger del
+ * topbar abre/cierra ese drawer. Drawers laterales y modales pasan a
+ * fullscreen. Catálogo: el rail de familias se oculta.
+ * ────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* App: una sola columna, sidebar es overlay fijo */
+  .app, .app[data-collapsed="true"] { grid-template-columns: 1fr; }
+
+  .sidebar {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform .22s cubic-bezier(.2,.7,.3,1);
+    z-index: 60;
+    box-shadow: var(--sh-3);
+    padding: 16px 12px;
+    align-items: stretch;
+  }
+  .app[data-mobile-nav="open"] .sidebar { transform: translateX(0); }
+  .app[data-mobile-nav="open"]::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(20,24,26,0.5);
+    z-index: 55;
+    animation: fadeIn .15s ease-out;
+  }
+  /* En mobile ignoramos el "collapsed" del desktop: el sidebar se ve
+   * siempre completo cuando se abre como drawer. */
+  .app[data-collapsed="true"] > .sidebar {
+    width: 280px; align-items: stretch; padding: 16px 12px;
+  }
+  .app[data-collapsed="true"] > .sidebar .sb-section { display: block; }
+  .app[data-collapsed="true"] > .sidebar .sb-item {
+    justify-content: flex-start; padding: 9px 12px; width: 100%;
+  }
+  .app[data-collapsed="true"] > .sidebar .sb-item .badge {
+    position: static; padding: 2px 7px; font-size: 11px;
+  }
+  .app[data-collapsed="true"] > .sidebar .sb-brand {
+    padding: 6px 10px 16px; justify-content: flex-start;
+    border-bottom: 1px solid var(--border); margin-bottom: 12px;
+    width: auto;
+  }
+  .app[data-collapsed="true"] > .sidebar .sb-foot {
+    flex-direction: row; gap: 10px; padding: 12px 8px 4px; width: auto;
+  }
+
+  /* Topbar: compactado, omitimos elementos no esenciales */
+  .topbar { padding: 0 12px; gap: 8px; height: 56px; }
+  .tb-title { font-size: 15px; }
+  .tb-sync { display: none; }
+  .tb-bell { display: none; }
+  .client-pill { padding: 4px 10px 4px 4px; gap: 6px; max-width: 60vw; }
+  .client-pill .name,
+  .client-pill .meta { max-width: 40vw; font-size: 12px; }
+  .tb-cart { padding: 0 12px; height: 36px; }
+  .tb-cart-total { font-size: 13px; }
+
+  /* Drawer (pedido) en mobile: ocupa toda la pantalla */
+  .drawer { width: 100vw; max-width: 100vw; }
+  .drawer-hd { padding: 14px 16px; }
+  .drawer-body { padding: 12px 16px; }
+  .drawer-foot { padding: 14px 16px; }
+
+  /* Modales en mobile: pantalla completa sin esquinas redondeadas */
+  .modal {
+    width: 100vw !important; max-width: 100vw;
+    height: 100vh; max-height: 100vh;
+    border-radius: 0;
+    top: 0; left: 0; transform: none;
+    animation: fadeIn .18s ease-out;
+  }
+
+  /* App content sin scroll horizontal global */
+  .app-content { padding: 0; overflow-x: hidden; }
+  .app-main { min-width: 0; overflow-x: hidden; }
+
+  /* Tablas con scroll horizontal cuando no caben en el ancho del móvil */
+  .card { overflow-x: auto; }
+  .tbl { min-width: max-content; }
+
+  /* Reducir padding de pantallas con padding inline grande (28-30px) */
+  .scroll-y { padding: 14px !important; }
+  .page-wrap { padding: 14px !important; gap: 16px !important; }
+
+  /* Catalog: el rail de familias se oculta en mobile.
+   * Se accede a familias desde un dropdown en la barra de búsqueda. */
+  .catalog-layout { grid-template-columns: 1fr !important; }
+  .catalog-rail { display: none !important; }
+  .catalog-topbar { padding: 10px 14px !important; gap: 8px !important; }
+  .catalog-topbar .input-wrap { flex: 1 1 100% !important; max-width: 100% !important; }
+  .catalog-topbar select { flex: 1 1 auto !important; width: auto !important; }
+
+  /* Tablas: hacen scroll horizontal si no caben */
+  .tbl { font-size: 12.5px; }
+
+  /* Login screen: stack vertical, panel marca primero (más visual) */
+  .login-grid { grid-template-columns: 1fr !important; height: auto !important; min-height: 100vh; }
+  .login-brand { min-height: 220px !important; padding: 24px !important; }
+  .login-brand .login-brand-headline { font-size: 22px !important; line-height: 1.2 !important; }
+  .login-form { padding: 32px 24px !important; max-width: 100% !important; }
+}

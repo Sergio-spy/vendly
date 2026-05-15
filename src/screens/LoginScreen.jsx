@@ -23,8 +23,8 @@ export function LoginScreen({ onLogin }) {
   };
 
   return (
-    <form onSubmit={submit} style={{ height:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', background:'var(--bg)' }}>
-      <div style={{ padding:'56px 64px', display:'flex', flexDirection:'column', justifyContent:'center', maxWidth: 480 }}>
+    <form onSubmit={submit} className="login-grid" style={{ height:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', background:'var(--bg)' }}>
+      <div className="login-form" style={{ padding:'56px 64px', display:'flex', flexDirection:'column', justifyContent:'center', maxWidth: 480 }}>
         <div className="hstack" style={{ marginBottom: 40 }}>
           <div className="sb-logo" style={{ width: 44, height: 44, borderRadius: 12, fontSize: 22 }}>V</div>
           <div>
@@ -60,7 +60,7 @@ export function LoginScreen({ onLogin }) {
         </div>
       </div>
 
-      <div style={{ background:'linear-gradient(135deg, var(--brand-700), var(--brand-500))', position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding: 56, color:'white' }}>
+      <div className="login-brand" style={{ background:'linear-gradient(135deg, var(--brand-700), var(--brand-500))', position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between', padding: 56, color:'white' }}>
         <div style={{ position:'absolute', inset: 0, opacity: 0.12, backgroundImage:'radial-gradient(circle at 30% 20%, white 1px, transparent 2px), radial-gradient(circle at 70% 60%, white 1px, transparent 2px)', backgroundSize:'40px 40px', pointerEvents:'none' }}/>
 
         {/* Logo arriba */}
@@ -73,7 +73,7 @@ export function LoginScreen({ onLogin }) {
           <div style={{ fontSize: 13, fontWeight: 600, letterSpacing:'0.12em', textTransform:'uppercase', opacity:.85, marginBottom: 14 }}>
             Aluminio que dura
           </div>
-          <div style={{ fontSize: 36, fontWeight: 600, letterSpacing:'-0.02em', lineHeight: 1.2, marginBottom: 28, textWrap:'balance', maxWidth: 420 }}>
+          <div className="login-brand-headline" style={{ fontSize: 36, fontWeight: 600, letterSpacing:'-0.02em', lineHeight: 1.2, marginBottom: 28, textWrap:'balance', maxWidth: 420 }}>
             Diseñamos y fabricamos palos y mangos para escobas, fregonas y recogedores.
           </div>
           <div className="hstack" style={{ gap: 10, flexWrap:'wrap' }}>
