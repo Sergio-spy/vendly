@@ -1,6 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ProductCard, ProductRow } from '../components/ProductCard';
+
+// Orden personalizado de familias top-level para la vista "Todas".
+// Cuando familyKey === 'all', los productos se ordenan por la posición de su
+// familia en esta lista. Dentro de cada familia se ordenan por nombre.
+const ALL_VIEW_ORDER = [
+  'Palos Aluminio',          // incluye Anodizado, ECO, PRO (descendientes)
+  'Palos Metálicos',
+  'Cubos Y Escurridores',
+  'Recogedores',
+  'Escobas',
+  'Fregonas Microfibra',
+  'Fregonas Algodón',
+  'Toallitas',
+  'Discos Algodon y Tiras adhesivas',
+  'Plumeros',
+];
 
 export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSize, products = [], tariffMult = {}, families = [], showStock = false, isPortal = false }) {
   const [familyKey, setFamilyKey] = useState('all');
@@ -24,6 +40,18 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
     productsByCategId.set(p.family, (productsByCategId.get(p.family) || 0) + 1);
   }
 
+  // Mapa categId → prioridad (0..N-1) según ALL_VIEW_ORDER. Para cada
+  // familia top-level cogemos sus descendantIds y todos heredan la posición.
+  const priorityByCategId = useMemo(() => {
+    const m = new Map();
+    for (let i = 0; i < ALL_VIEW_ORDER.length; i++) {
+      const top = families.find(f => f.depth === 0 && f.key === ALL_VIEW_ORDER[i]);
+      if (!top) continue;
+      for (const id of (top.descendantIds || [])) m.set(id, i);
+    }
+    return m;
+  }, [families]);
+
   const tariff = client?.tariff || 'T2';
   let prods = products.filter(p => {
     if (familyKey === 'all') return true;
@@ -33,7 +61,17 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
   if (onlyOffer) prods = prods.filter(p => p.oferta || p.promo);
   if (onlyStock) prods = prods.filter(p => p.stock > 0);
   if (sort === 'price') prods = [...prods].sort((a,b)=>a.pvp-b.pvp);
-  if (sort === 'stock') prods = [...prods].sort((a,b)=>b.stock-a.stock);
+  else if (sort === 'stock') prods = [...prods].sort((a,b)=>b.stock-a.stock);
+  else if (familyKey === 'all') {
+    // Vista "Todas" con orden por nombre: primero familia (según
+    // ALL_VIEW_ORDER), luego nombre dentro de cada familia.
+    prods = [...prods].sort((a, b) => {
+      const pa = priorityByCategId.get(a.family) ?? 999;
+      const pb = priorityByCategId.get(b.family) ?? 999;
+      if (pa !== pb) return pa - pb;
+      return (a.name || '').localeCompare(b.name || '', 'es');
+    });
+  }
 
   // Para single-variant productos, el id de carrito es la odooId (variante).
   // Para multi-variant, el comercial debe abrir el modal y elegir variante.
