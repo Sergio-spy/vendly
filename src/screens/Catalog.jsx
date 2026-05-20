@@ -6,7 +6,7 @@ export function Catalog({ view, cart, updateCartQty, client, openProduct, cardSi
   const [familyKey, setFamilyKey] = useState('all');
   const [railOpen, setRailOpen] = useState(false);
   // Cuando se elige una familia, en móvil cerramos el drawer del rail.
-  const pickFamily = (k) => { pickFamily(k); setRailOpen(false); };
+  const pickFamily = (k) => { setFamilyKey(k); setRailOpen(false); };
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('name');
   const [onlyOffer, setOnlyOffer] = useState(false);
