@@ -23,8 +23,25 @@ export default async function handler(req, res) {
   const size = allowedSizes.includes(sizeParam) ? sizeParam : '512';
   const field = `image_${size}`;
 
+  // Hasta 3 intentos en total (1 inicial + 2 retries) con backoff. Odoo SaaS
+  // rebota cuando hay picos de carga concurrente; un retry corto cubre eso
+  // sin esperar al SW client a revalidar.
+  const attemptRead = async () => {
+    const delays = [0, 250, 1000];
+    let lastErr = null;
+    for (const d of delays) {
+      if (d) await new Promise(r => setTimeout(r, d));
+      try {
+        return await call(model, 'read', [[target], [field]]);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  };
+
   try {
-    const rows = await call(model, 'read', [[target], [field]]);
+    const rows = await attemptRead();
     const b64 = rows?.[0]?.[field];
     if (!b64) {
       // Sin imagen → 404 corto cacheado, así el navegador no reintenta cada vez.
@@ -48,6 +65,11 @@ export default async function handler(req, res) {
     res.setHeader('Content-Length', String(buf.length));
     res.status(200).end(buf);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    // 502 con Cache-Control 0: el CDN no cachea fallos transitorios y el
+    // cliente puede reintentar sin esperar al TTL. Loguea el detalle para
+    // diagnóstico (Vercel runtime logs).
+    console.error('[product-image] error tras retries:', e?.message || e);
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(502).json({ error: 'Odoo no respondió: ' + (e?.message || e) });
   }
 }

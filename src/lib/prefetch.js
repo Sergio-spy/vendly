@@ -4,7 +4,11 @@
 
 import { productImageUrl } from '../api';
 
-const CONCURRENCY = 6;
+// 3 descargas concurrentes (antes 6). Reducido tras alerta de Vercel
+// 'Error Spike' en /api/product-image: 43 errores en 5 min cuando varios
+// comerciales abrían el catálogo a la vez. Odoo SaaS rebota con concurrencia
+// alta. 3 deja margen suficiente sin saturar el rate-limit upstream.
+const CONCURRENCY = 3;
 
 let _running = false;
 export async function prefetchProductImages(products) {
