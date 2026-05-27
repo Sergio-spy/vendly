@@ -37,6 +37,14 @@ export default async function handler(req, res) {
     const lines = await search_read('sale.order.line', [['order_id','=', id]],
       ['product_id','name','product_uom_qty','price_unit','price_subtotal','discount']);
 
+    // Barcode (EAN) por product_id (variante). Lectura batch.
+    const productIds = [...new Set(lines.map(l => l.product_id?.[0]).filter(Boolean))];
+    const productInfo = productIds.length
+      ? await search_read('product.product', [['id','in', productIds]],
+          ['id','barcode'], { limit: productIds.length })
+      : [];
+    const barcodeById = new Map(productInfo.map(p => [p.id, p.barcode || '']));
+
     const wb = new ExcelJS.Workbook();
     wb.creator = COMPANY.name;
     wb.created = new Date();
@@ -47,24 +55,25 @@ export default async function handler(req, res) {
     // Anchos de columna
     ws.columns = [
       { width: 14 }, // A — etiquetas / Ref
-      { width: 50 }, // B — descripción
-      { width: 10 }, // C — cantidad
-      { width: 14 }, // D — precio
-      { width: 14 }, // E — subtotal
+      { width: 16 }, // B — EAN
+      { width: 45 }, // C — descripción
+      { width: 10 }, // D — cantidad
+      { width: 14 }, // E — precio
+      { width: 14 }, // F — subtotal
     ];
 
     // ── Cabecera Palomatic ──────────────────────────────────
-    ws.mergeCells('A1:E1');
+    ws.mergeCells('A1:F1');
     ws.getCell('A1').value = COMPANY.name;
     ws.getCell('A1').font = { name: 'Calibri', bold: true, size: 16, color: { argb: 'FF222222' } };
     ws.getCell('A1').alignment = { horizontal: 'left', vertical: 'middle' };
     ws.getRow(1).height = 22;
 
-    ws.mergeCells('A2:E2');
+    ws.mergeCells('A2:F2');
     ws.getCell('A2').value = `NIF ${COMPANY.nif} · ${COMPANY.address} · ${COMPANY.city}`;
     ws.getCell('A2').font = { name: 'Calibri', size: 9, color: { argb: 'FF555555' } };
 
-    ws.mergeCells('A3:E3');
+    ws.mergeCells('A3:F3');
     ws.getCell('A3').value = `Tel. ${COMPANY.phone} · ${COMPANY.email} · ${COMPANY.web}`;
     ws.getCell('A3').font = { name: 'Calibri', size: 9, color: { argb: 'FF555555' } };
 
@@ -72,7 +81,7 @@ export default async function handler(req, res) {
     ws.getRow(4).height = 4;
 
     // ── Datos del pedido ─────────────────────────────────────
-    ws.mergeCells('A5:E5');
+    ws.mergeCells('A5:F5');
     ws.getCell('A5').value = `Pedido ${o.name || ''}`;
     ws.getCell('A5').font = { name: 'Calibri', bold: true, size: 14 };
 
@@ -80,7 +89,7 @@ export default async function handler(req, res) {
     const setKV = (k, v) => {
       ws.getCell(`A${row}`).value = k;
       ws.getCell(`A${row}`).font = { bold: true, size: 10 };
-      ws.mergeCells(`B${row}:E${row}`);
+      ws.mergeCells(`B${row}:F${row}`);
       ws.getCell(`B${row}`).value = v || '';
       ws.getCell(`B${row}`).font = { size: 10 };
       row++;
@@ -93,11 +102,11 @@ export default async function handler(req, res) {
     // ── Cliente ──────────────────────────────────────────────
     if (partner) {
       row++;
-      ws.mergeCells(`A${row}:E${row}`);
+      ws.mergeCells(`A${row}:F${row}`);
       ws.getCell(`A${row}`).value = 'CLIENTE';
       ws.getCell(`A${row}`).font = { bold: true, size: 11, color: { argb: 'FF222222' } };
       row++;
-      ws.mergeCells(`A${row}:E${row}`);
+      ws.mergeCells(`A${row}:F${row}`);
       ws.getCell(`A${row}`).value = partner.name || '';
       ws.getCell(`A${row}`).font = { bold: true, size: 11 };
       row++;
@@ -108,7 +117,7 @@ export default async function handler(req, res) {
         [partner.phone && `Tel. ${partner.phone}`, partner.email].filter(Boolean).join(' · '),
       ].filter(Boolean);
       for (const l of partnerLines) {
-        ws.mergeCells(`A${row}:E${row}`);
+        ws.mergeCells(`A${row}:F${row}`);
         ws.getCell(`A${row}`).value = l;
         ws.getCell(`A${row}`).font = { size: 10, color: { argb: 'FF333333' } };
         row++;
@@ -118,13 +127,13 @@ export default async function handler(req, res) {
 
     // ── Tabla de líneas ──────────────────────────────────────
     const headerRow = row;
-    const headers = ['Ref.', 'Descripción', 'Cant.', 'Precio', 'Subtotal'];
+    const headers = ['Ref.', 'EAN', 'Descripción', 'Cant.', 'Precio', 'Subtotal'];
     headers.forEach((h, i) => {
       const cell = ws.getCell(headerRow, i + 1);
       cell.value = h;
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF222222' } };
-      cell.alignment = { horizontal: i === 0 || i === 1 ? 'left' : 'right', vertical: 'middle' };
+      cell.alignment = { horizontal: i <= 2 ? 'left' : 'right', vertical: 'middle' };
       cell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} };
     });
     row++;
@@ -132,23 +141,26 @@ export default async function handler(req, res) {
     for (const l of lines) {
       const ref = l.product_id?.[1]?.match(/^\[([^\]]+)\]/)?.[1] || '';
       const name = (l.product_id?.[1] || l.name || '').replace(/^\[[^\]]+\]\s*/, '');
+      const ean = barcodeById.get(l.product_id?.[0]) || '';
       const qty = l.product_uom_qty || 0;
       const price = l.price_unit || 0;
       const subtotal = l.price_subtotal || 0;
 
       ws.getCell(row, 1).value = ref;
-      ws.getCell(row, 2).value = name;
-      ws.getCell(row, 3).value = qty;
-      ws.getCell(row, 4).value = price;
-      ws.getCell(row, 5).value = subtotal;
+      ws.getCell(row, 2).value = ean;
+      ws.getCell(row, 3).value = name;
+      ws.getCell(row, 4).value = qty;
+      ws.getCell(row, 5).value = price;
+      ws.getCell(row, 6).value = subtotal;
 
-      ws.getCell(row, 4).numFmt = '#,##0.0000 €';
-      ws.getCell(row, 5).numFmt = '#,##0.00 €';
-      for (let c = 1; c <= 5; c++) {
+      ws.getCell(row, 2).numFmt = '@'; // EAN como texto (no número, mantiene ceros iniciales)
+      ws.getCell(row, 5).numFmt = '#,##0.0000 €';
+      ws.getCell(row, 6).numFmt = '#,##0.00 €';
+      for (let c = 1; c <= 6; c++) {
         ws.getCell(row, c).font = { size: 10 };
         ws.getCell(row, c).border = { bottom: { style: 'hair', color: { argb: 'FFE0E0E0' } } };
       }
-      ws.getCell(row, 2).alignment = { wrapText: true, vertical: 'top' };
+      ws.getCell(row, 3).alignment = { wrapText: true, vertical: 'top' };
       row++;
     }
 
@@ -160,15 +172,15 @@ export default async function handler(req, res) {
       ['TOTAL',          o.amount_total   || 0],
     ];
     for (const [label, value] of totalsRows) {
-      ws.getCell(row, 4).value = label;
-      ws.getCell(row, 5).value = value;
-      ws.getCell(row, 4).alignment = { horizontal: 'right' };
-      ws.getCell(row, 5).numFmt = '#,##0.00 €';
-      ws.getCell(row, 4).font = { size: 10, bold: label === 'TOTAL' };
-      ws.getCell(row, 5).font = { size: label === 'TOTAL' ? 12 : 10, bold: label === 'TOTAL' };
+      ws.getCell(row, 5).value = label;
+      ws.getCell(row, 6).value = value;
+      ws.getCell(row, 5).alignment = { horizontal: 'right' };
+      ws.getCell(row, 6).numFmt = '#,##0.00 €';
+      ws.getCell(row, 5).font = { size: 10, bold: label === 'TOTAL' };
+      ws.getCell(row, 6).font = { size: label === 'TOTAL' ? 12 : 10, bold: label === 'TOTAL' };
       if (label === 'TOTAL') {
-        ws.getCell(row, 4).border = { top: { style: 'thin' } };
         ws.getCell(row, 5).border = { top: { style: 'thin' } };
+        ws.getCell(row, 6).border = { top: { style: 'thin' } };
       }
       row++;
     }
@@ -179,7 +191,7 @@ export default async function handler(req, res) {
       ws.getCell(`A${row}`).value = 'Notas';
       ws.getCell(`A${row}`).font = { bold: true, size: 10 };
       row++;
-      ws.mergeCells(`A${row}:E${row}`);
+      ws.mergeCells(`A${row}:F${row}`);
       ws.getCell(`A${row}`).value = String(o.note);
       ws.getCell(`A${row}`).font = { size: 9 };
       ws.getCell(`A${row}`).alignment = { wrapText: true, vertical: 'top' };
@@ -188,7 +200,7 @@ export default async function handler(req, res) {
 
     // Leyenda al pie
     row += 2;
-    ws.mergeCells(`A${row}:E${row}`);
+    ws.mergeCells(`A${row}:F${row}`);
     ws.getCell(`A${row}`).value = FOOTER_LEGEND.join(' · ');
     ws.getCell(`A${row}`).font = { size: 8, color: { argb: 'FF888888' }, italic: true };
     ws.getCell(`A${row}`).alignment = { horizontal: 'center', wrapText: true };

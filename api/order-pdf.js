@@ -48,6 +48,14 @@ export default async function handler(req, res) {
     const lines = await search_read('sale.order.line', [['order_id','=', id]],
       ['product_id','name','product_uom_qty','price_unit','price_subtotal','discount']);
 
+    // Barcode (EAN) por product_id (variante). Lectura batch.
+    const productIds = [...new Set(lines.map(l => l.product_id?.[0]).filter(Boolean))];
+    const productInfo = productIds.length
+      ? await search_read('product.product', [['id','in', productIds]],
+          ['id','barcode'], { limit: productIds.length })
+      : [];
+    const barcodeById = new Map(productInfo.map(p => [p.id, p.barcode || '']));
+
     // Render PDF
     const doc = new PDFDocument({ size:'A4', margin: 40, info: { Title: o.name || `Pedido ${id}`, Author: COMPANY.name } });
     res.setHeader('Content-Type', 'application/pdf');
@@ -125,11 +133,12 @@ export default async function handler(req, res) {
     // ── Tabla de líneas ───────────────────────────────────────────────
     cursorY += 4;
     const cols = {
-      ref:   { x: 40,  w: 80,  label: 'Ref.' },
-      desc:  { x: 125, w: 250, label: 'Descripción' },
-      qty:   { x: 380, w: 40,  label: 'Cant.', align: 'right' },
-      price: { x: 425, w: 60,  label: 'Precio',   align: 'right' },
-      total: { x: 490, w: 65,  label: 'Subtotal', align: 'right' },
+      ref:   { x: 40,  w: 60,  label: 'Ref.' },
+      ean:   { x: 100, w: 95,  label: 'EAN' },
+      desc:  { x: 195, w: 190, label: 'Descripción' },
+      qty:   { x: 385, w: 35,  label: 'Cant.', align: 'right' },
+      price: { x: 420, w: 60,  label: 'Precio',   align: 'right' },
+      total: { x: 480, w: 75,  label: 'Subtotal', align: 'right' },
     };
     // Cabecera tabla
     doc.rect(40, cursorY, 515, 18).fillColor('#222').fill();
@@ -141,11 +150,13 @@ export default async function handler(req, res) {
     const drawLine = (l) => {
       const ref = l.product_id?.[1]?.match(/^\[([^\]]+)\]/)?.[1] || '';
       const name = (l.product_id?.[1] || l.name || '').replace(/^\[[^\]]+\]\s*/, '');
+      const ean = barcodeById.get(l.product_id?.[0]) || '';
       const qty = l.product_uom_qty || 0;
       const price = l.price_unit || 0;
       const subtotal = l.price_subtotal || 0;
       const startY = cursorY;
       doc.text(ref, cols.ref.x + 4, cursorY, { width: cols.ref.w - 8 });
+      doc.text(ean, cols.ean.x + 4, cursorY, { width: cols.ean.w - 8 });
       doc.text(name, cols.desc.x + 4, cursorY, { width: cols.desc.w - 8 });
       doc.text(String(qty), cols.qty.x + 4, cursorY, { width: cols.qty.w - 8, align:'right' });
       doc.text(eur(price), cols.price.x + 4, cursorY, { width: cols.price.w - 8, align:'right' });
@@ -169,16 +180,16 @@ export default async function handler(req, res) {
     // ── Totales ───────────────────────────────────────────────────────
     cursorY += 10;
     if (cursorY > 720) { doc.addPage(); cursorY = 60; }
-    const totLabelX = 380, totValueX = 490;
+    const totLabelX = 370, totValueX = 480, totValueW = 75;
     doc.font('Helvetica').fontSize(10);
-    doc.text('Base imponible', totLabelX, cursorY); doc.text(eur(o.amount_untaxed), totValueX, cursorY, { width: 65, align:'right' });
+    doc.text('Base imponible', totLabelX, cursorY); doc.text(eur(o.amount_untaxed), totValueX, cursorY, { width: totValueW, align:'right' });
     cursorY += 14;
-    doc.text('IVA',            totLabelX, cursorY); doc.text(eur(o.amount_tax),     totValueX, cursorY, { width: 65, align:'right' });
+    doc.text('IVA',            totLabelX, cursorY); doc.text(eur(o.amount_tax),     totValueX, cursorY, { width: totValueW, align:'right' });
     cursorY += 6;
     doc.moveTo(totLabelX, cursorY + 6).lineTo(555, cursorY + 6).strokeColor('#222').lineWidth(0.5).stroke();
     cursorY += 12;
     doc.font('Helvetica-Bold').fontSize(13);
-    doc.text('TOTAL', totLabelX, cursorY); doc.text(eur(o.amount_total), totValueX, cursorY, { width: 65, align:'right' });
+    doc.text('TOTAL', totLabelX, cursorY); doc.text(eur(o.amount_total), totValueX, cursorY, { width: totValueW, align:'right' });
 
     // ── Notas + leyenda ───────────────────────────────────────────────
     if (o.note) {
