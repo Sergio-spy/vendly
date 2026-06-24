@@ -10,6 +10,7 @@ import { OrderDrawer } from './screens/OrderDrawer';
 import { ProductModal } from './screens/ProductModal';
 import { OrderDetailModal } from './screens/OrderDetailModal';
 import { OutboxModal } from './screens/OutboxModal';
+import { ClientForm } from './screens/ClientForm';
 import { OrdersScreen, ClientsScreen, TariffsScreen, PromosScreen, StockScreen, CollectScreen, KpiScreen, AdminScreen } from './screens/OtherScreens';
 import { PromosAdmin } from './screens/PromosAdmin';
 import { AdminKpi } from './screens/AdminKpi';
@@ -66,6 +67,7 @@ export default function App() {
 
   const [route, setRoute] = useState('dashboard');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [clientFormOpen, setClientFormOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(null);
   const [orderDetailOpen, setOrderDetailOpen] = useState(null);
@@ -434,6 +436,22 @@ export default function App() {
         onPick={(c) => {
           setClient(c);
           if (pendingNewOrder) { setPendingNewOrder(false); setRoute('catalog'); }
+        }}
+        onNew={salesman.role === 'admin' || !isPortal ? (() => setClientFormOpen(true)) : null}/>
+      <ClientForm open={clientFormOpen} mode="create" tariffs={tariffs} onClose={() => setClientFormOpen(false)}
+        onSaved={async (created) => {
+          setClientFormOpen(false);
+          // Recarga lista de clientes y auto-selecciona el recién creado.
+          try {
+            const fresh = await api.clients();
+            setClients(fresh);
+            const newOne = fresh.find(c => c.odooId === created?.odooId) || fresh[0];
+            if (newOne) {
+              setClient(newOne);
+              setPickerOpen(false);
+              if (pendingNewOrder) { setPendingNewOrder(false); setRoute('catalog'); }
+            }
+          } catch {}
         }}/>
       <OrderDrawer open={orderOpen} onClose={()=>setOrderOpen(false)} cart={cart} updateCartQty={updateCartQty} client={client} onConfirm={onConfirm} onChangeClient={isPortal ? null : (()=>setPickerOpen(true))} tariffMult={tariffMult} tariff={tariff} editing={!!editingOrderId} isPortal={isPortal}/>
       <ProductModal product={productOpen} onClose={()=>setProductOpen(null)} cart={cart} updateCartQty={updateCartQty} tariff={tariff} tariffMult={tariffMult} showStock={salesman.role==='admin'} client={client} tariffName={client?.tariff || 'Comercial PVP'} isPortal={isPortal}/>

@@ -90,9 +90,15 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
-      // Precio = mínimo de todas las variantes del template.
+      // Precio = mínimo de las variantes del template, IGNORANDO precios 0
+      // (variantes mal configuradas en Odoo con standard_price 0). Si todas
+      // las variantes valen 0, dejamos el pvp tal cual (list_price del
+      // template) que también puede ser 0 pero al menos no contaminamos
+      // productos válidos.
       const vids = r.product_variant_ids || [];
-      const prices = vids.map(v => priceByVariant.get(v)).filter(x => typeof x === 'number');
+      const prices = vids
+        .map(v => priceByVariant.get(v))
+        .filter(x => typeof x === 'number' && x > 0);
       if (prices.length) m.pvp = Math.min(...prices) * markup;
 
       // SKU/EAN fallback desde la primera variante.

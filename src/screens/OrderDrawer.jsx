@@ -106,8 +106,7 @@ export function OrderDrawer({ open, onClose, cart, updateCartQty, client, onConf
             </div>
           )}
           <div className="hstack" style={{ gap: 8 }}>
-            <button className="btn btn-secondary" style={{ flex:1 }}>Guardar borrador</button>
-            <button className="btn btn-primary btn-lg" style={{ flex:2 }} onClick={onConfirm} disabled={lines.length===0 || !client}>
+            <button className="btn btn-primary btn-lg" style={{ flex:1 }} onClick={onConfirm} disabled={lines.length===0 || !client}>
               <Icon name="check" size={16}/> {editing ? 'Guardar cambios' : 'Confirmar pedido'}
             </button>
           </div>

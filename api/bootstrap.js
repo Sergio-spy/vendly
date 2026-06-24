@@ -169,9 +169,12 @@ export default async function handler(req, res) {
         m.variantCount = 1;
         m.odooId = m.variantIds[0];
       }
-      // Precio = mínimo de todas las variantes (consistente con el modal).
+      // Precio = mínimo de las variantes (consistente con el modal),
+      // ignorando precios 0 de variantes mal configuradas en Odoo.
       const vids = r.product_variant_ids || [];
-      const prices = vids.map(v => priceByVariant.get(v)).filter(x => typeof x === 'number');
+      const prices = vids
+        .map(v => priceByVariant.get(v))
+        .filter(x => typeof x === 'number' && x > 0);
       if (prices.length) m.pvp = Math.min(...prices) * markup;
 
       // SKU/EAN fallback desde la primera variante.

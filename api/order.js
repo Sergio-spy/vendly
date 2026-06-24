@@ -67,16 +67,24 @@ export default async function handler(req, res) {
         amountUntaxed: o.amount_untaxed || 0,
         amountTax: o.amount_tax || 0,
       },
-      lines: lines.map(l => ({
-        odooId: l.id,
-        productId: l.product_id?.[0] || null,
-        productName: l.product_id?.[1] || l.name,
-        description: l.name,
-        qty: l.product_uom_qty || 0,
-        price: l.price_unit || 0,
-        discount: l.discount || 0,
-        subtotal: l.price_subtotal || 0,
-      })),
+      // Limpia paréntesis de atributos de variante de display_name de Odoo.
+      // Ej. "Producto (Color: Azul, Long: 150)" → "Producto". Solo elimina
+      // paréntesis que contienen ":" para no romper nombres tipo
+      // "Palo 150 Anodizado (2 agujeros)".
+      lines: lines.map(l => {
+        const stripVariantAttrs = (s) => (s || '').replace(/\s*\([^)]*:[^)]*\)\s*$/, '').trim();
+        const rawName = l.product_id?.[1] || l.name;
+        return {
+          odooId: l.id,
+          productId: l.product_id?.[0] || null,
+          productName: stripVariantAttrs(rawName),
+          description: stripVariantAttrs(l.name),
+          qty: l.product_uom_qty || 0,
+          price: l.price_unit || 0,
+          discount: l.discount || 0,
+          subtotal: l.price_subtotal || 0,
+        };
+      }),
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

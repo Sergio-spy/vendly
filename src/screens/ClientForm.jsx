@@ -54,12 +54,13 @@ export function ClientForm({ open, mode = 'create', client, tariffs = [], onClos
         phone: phone.trim() || undefined,
         pricelistId: tariffId ? Number(tariffId) : undefined,
       };
+      let result;
       if (isEdit) {
-        await api.updateClient({ odooId: client.odooId, ...payload });
+        result = await api.updateClient({ odooId: client.odooId, ...payload });
       } else {
-        await api.createClient(payload);
+        result = await api.createClient(payload);
       }
-      onSaved?.();
+      onSaved?.(result);
       onClose?.();
     } catch (e) {
       setErr(e.message);

@@ -147,9 +147,17 @@ export default async function handler(req, res) {
     doc.fillColor('#000').font('Helvetica').fontSize(9);
     cursorY += 22;
 
+    // Quita el [code] inicial y los paréntesis de atributos de variante
+    // ("Producto (Color: Azul, Long: 150)" → "Producto"), pero respeta
+    // paréntesis sin colon como "(2 agujeros)".
+    const cleanName = (s) => (s || '')
+      .replace(/^\[[^\]]+\]\s*/, '')
+      .replace(/\s*\([^)]*:[^)]*\)\s*$/, '')
+      .trim();
+
     const drawLine = (l) => {
       const ref = l.product_id?.[1]?.match(/^\[([^\]]+)\]/)?.[1] || '';
-      const name = (l.product_id?.[1] || l.name || '').replace(/^\[[^\]]+\]\s*/, '');
+      const name = cleanName(l.product_id?.[1] || l.name);
       const ean = barcodeById.get(l.product_id?.[0]) || '';
       const qty = l.product_uom_qty || 0;
       const price = l.price_unit || 0;

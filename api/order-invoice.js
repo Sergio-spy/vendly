@@ -12,13 +12,16 @@ import { requireComercial } from './_lib/auth.js';
 
 async function fetchInvoicePdf(invoiceId) {
   const inv = await search_read('account.move', [['id','=', invoiceId]],
-    ['name','message_main_attachment_id'], { limit: 1 });
+    ['name','message_main_attachment_id','state','move_type'], { limit: 1 });
   if (!inv.length) return null;
+  // Saltamos facturas no posteadas (no tienen PDF generado todavía).
+  if (inv[0].state && inv[0].state !== 'posted') return null;
 
   let attId   = inv[0].message_main_attachment_id?.[0] || null;
   let attName = (inv[0].name || `Factura-${invoiceId}`).replace('/', '-') + '.pdf';
 
   if (!attId) {
+    // Fallback: cualquier PDF adjunto a este move.
     const atts = await search_read('ir.attachment',
       [
         ['res_model','=','account.move'],
@@ -27,9 +30,35 @@ async function fetchInvoicePdf(invoiceId) {
       ],
       ['id','name'],
       { limit: 1, order: 'id desc' });
-    if (!atts.length) return null;
-    attId   = atts[0].id;
-    attName = atts[0].name || attName;
+    if (atts.length) {
+      attId   = atts[0].id;
+      attName = atts[0].name || attName;
+    }
+  }
+
+  if (!attId) {
+    // Último intento: pedir a Odoo que renderice el PDF mediante el reporte
+    // estándar de facturas (Odoo 14+ usa account.report_invoice_with_payments).
+    try {
+      const reportNames = ['account.account_invoices', 'account.report_invoice', 'account.report_invoice_with_payments'];
+      for (const rn of reportNames) {
+        try {
+          const rendered = await call('ir.actions.report', '_render_qweb_pdf', [rn, [invoiceId]]);
+          // _render_qweb_pdf devuelve [bytes, formato]. En JSON los bytes
+          // pueden llegar como base64 string.
+          if (Array.isArray(rendered) && rendered[0]) {
+            const raw = rendered[0];
+            const buf = Buffer.isBuffer(raw) ? raw
+              : (typeof raw === 'string') ? Buffer.from(raw, 'base64')
+              : null;
+            if (buf && buf.length > 0) {
+              return { buf, name: attName, mime: 'application/pdf' };
+            }
+          }
+        } catch { /* probar siguiente nombre */ }
+      }
+    } catch { /* render no disponible */ }
+    return null;
   }
 
   const data = await call('ir.attachment', 'read', [[attId], ['datas','mimetype','name']]);
@@ -55,10 +84,26 @@ export default async function handler(req, res) {
     const invoiceIds = orders[0].invoice_ids || [];
     if (!invoiceIds.length) return res.status(404).json({ error: 'Sin factura emitida' });
 
-    // Probar las facturas en orden hasta encontrar una con PDF adjunto.
+    // Preferir facturas posteadas tipo out_invoice (no notas de abono) y más
+    // recientes primero — útil cuando hay entregas parciales con varias
+    // facturas y queremos la última emitida.
+    const allInvoices = await search_read('account.move', [['id','in', invoiceIds]],
+      ['id','move_type','state','invoice_date'], { limit: invoiceIds.length });
+    const priority = (m) => (
+      (m.move_type === 'out_invoice' ? 0 : 1) +
+      (m.state === 'posted' ? 0 : 10)
+    );
+    const sorted = [...allInvoices].sort((a, b) => {
+      const pa = priority(a), pb = priority(b);
+      if (pa !== pb) return pa - pb;
+      // Mismo nivel → más reciente primero.
+      return String(b.invoice_date || '').localeCompare(String(a.invoice_date || ''));
+    });
+
+    // Probar las facturas en orden hasta encontrar una con PDF descargable.
     let pdf = null;
-    for (const id of invoiceIds) {
-      pdf = await fetchInvoicePdf(id);
+    for (const inv of sorted) {
+      pdf = await fetchInvoicePdf(inv.id);
       if (pdf) break;
     }
     if (!pdf) {

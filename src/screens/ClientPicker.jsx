@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { eur } from '../lib/format';
 
-export function ClientPicker({ open, onClose, clients = [], current, onPick }) {
+export function ClientPicker({ open, onClose, clients = [], current, onPick, onNew }) {
   const [q, setQ] = useState('');
   if (!open) return null;
   const filt = clients.filter(c => (c.name + c.code + c.city).toLowerCase().includes(q.toLowerCase()));
@@ -43,7 +43,11 @@ export function ClientPicker({ open, onClose, clients = [], current, onPick }) {
         <div className="drawer-foot hstack">
           <div className="muted">{filt.length} clientes</div>
           <div className="spacer"/>
-          <button className="btn btn-secondary"><Icon name="plus" size={14}/> Nuevo cliente</button>
+          {onNew && (
+            <button className="btn btn-secondary" onClick={onNew}>
+              <Icon name="plus" size={14}/> Nuevo cliente
+            </button>
+          )}
         </div>
       </div>
     </>
